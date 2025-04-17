@@ -23,7 +23,7 @@ class DatabaseSessionManager:
         try:
             yield session
         except Exception as err:
-            logging.INFO(err)
+            logging.info(err)
             await session.rollback()
         finally:
             await session.close()
@@ -35,4 +35,3 @@ sessionmanager = DatabaseSessionManager(configuration.DB_URL)
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with sessionmanager.session() as session:
         yield session
-

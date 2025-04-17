@@ -5,8 +5,8 @@ from typing import Annotated
 from pydantic_extra_types.phone_numbers import PhoneNumberValidator, PhoneNumber
 
 
-def parse_date(v: str) -> date:
-    return date.fromisoformat(v)
+def parse_date(string_date: str) -> date:
+    return date.fromisoformat(string_date)
 
 
 DateValidator = Annotated[date, BeforeValidator(parse_date)]

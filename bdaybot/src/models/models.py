@@ -22,28 +22,28 @@ class Person(Base):
 
 class Email(Base):
 
-    __tablename__ = 'emails'
+    __tablename__ = "emails"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     email: Mapped[str] = mapped_column(String(60))
     tag: Mapped[str] = mapped_column(String(20), nullable=True)
 
-    person_id: Mapped[int] = mapped_column(Integer, ForeignKey('persons.id'))
+    person_id: Mapped[int] = mapped_column(Integer, ForeignKey("persons.id"))
 
 
 class Phone(Base):
 
-    __tablename__ = 'phones'
+    __tablename__ = "phones"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     phone: Mapped[str] = mapped_column(String(16))
     tag: Mapped[str] = mapped_column(String(20), nullable=True)
 
-    person_id: Mapped[int] = mapped_column(Integer, ForeignKey('persons.id'))
+    person_id: Mapped[int] = mapped_column(Integer, ForeignKey("persons.id"))
 
 
 class Hobby(Base):
 
-    __tablename__ = 'hobbies'
+    __tablename__ = "hobbies"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     hobby_name: Mapped[str] = mapped_column(String(70), default=None)
 
-    person_id: Mapped[int] = mapped_column(Integer, ForeignKey('persons.id'))
+    person_id: Mapped[int] = mapped_column(Integer, ForeignKey("persons.id"))
