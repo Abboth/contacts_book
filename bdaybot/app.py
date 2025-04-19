@@ -3,11 +3,15 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bdaybot.src.bd_connect.database.connection import get_db
-from bdaybot.src.routes import bday_bot
+from bdaybot.src.routes.contacts import router as contact_route
+from bdaybot.src.routes.contact_emails import router as email_route
+from bdaybot.src.routes.contact_phones import router as phone_route
 
 app = FastAPI()
 
-app.include_router(bday_bot.router, prefix="/api")
+app.include_router(contact_route, prefix="/contact", tags=["Contacts"])
+app.include_router(email_route, prefix="/contact/email", tags=["Emails"])
+app.include_router(phone_route, prefix="/contact/phone", tags=["Phones"])
 
 
 @app.get("/")

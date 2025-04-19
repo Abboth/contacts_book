@@ -1,5 +1,4 @@
 from typing import Optional
-from datetime import date
 from pydantic import BaseModel, EmailStr, Field
 
 from bdaybot.src.schemas.custom_validators import ValidatorPhone, DateValidator
@@ -16,7 +15,7 @@ class AddContactSchema(BaseModel):
     phone_number: Optional[ValidatorPhone] = Field(default=None)
     phone_tag: Optional[str] = Field(default=None, max_length=20)
 
-    hobby: Optional[str] = Field(default=None, min_length=3, max_length=70)
+    description: Optional[str] = Field(default=None, min_length=3, max_length=500)
 
 class ContactUpdateSchema(BaseModel):
     first_name: str = Field(min_length=2, max_length=25)
@@ -24,29 +23,21 @@ class ContactUpdateSchema(BaseModel):
 
     birthday: Optional[DateValidator] = Field(default=None)
 
-    email: Optional[EmailStr] = Field(default=None)
-    mail_tag: Optional[str] = Field(default=None, max_length=20)
-    phone_number: Optional[ValidatorPhone] = Field(default=None)
-    phone_tag: Optional[str] = Field(default=None, max_length=20)
+    description: Optional[str] = Field(default=None, min_length=3, max_length=500)
 
-    hobby: Optional[str] = Field(default=None, min_length=3, max_length=70)
+class AddPhoneSchema(BaseModel):
+    phone_number: ValidatorPhone = Field(default=None)
+    phone_tag: str = Field(default=None, max_length=20)
 
-class ContactResponseSchema(BaseModel):
-    id: int
-    first_name: str
-    last_name: str
+class PhoneUpdateSchema(BaseModel):
+    phone_number: ValidatorPhone
 
-    birthday: Optional[date] = None
+class AddEmailSchema(BaseModel):
+    email: EmailStr = Field(default=None)
+    mail_tag: str = Field(default=None, max_length=20)
 
-    email: Optional[str] = None
-    mail_tag: Optional[str] = None
-    phone_number: Optional[str] = None
-    phone_tag: Optional[str] = None
+class EmailUpdateSchema(BaseModel):
+    email: EmailStr
 
-    hobby: Optional[str] = None
 
-    class Config:
-        from_attributes = True
 
-class RemoveContact(BaseModel):
-    msg: str
