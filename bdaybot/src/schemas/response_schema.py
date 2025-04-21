@@ -17,12 +17,12 @@ class ContactResponseSchema(BaseModel):
     id: int
     first_name: str
     last_name: str
-    birthday: Optional[date] = None
-    description: Optional[str] = None
+    birthday: date = None
+    description: str = None
 
-    email: Optional[list[EmailResponseSchema]] = None
+    email: list[EmailResponseSchema] = None
 
-    phones: Optional[list[PhoneResponseSchema]] = None
+    phones: list[PhoneResponseSchema] = None
 
     class Config:
         from_attributes = True
