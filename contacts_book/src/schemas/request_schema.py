@@ -1,7 +1,7 @@
 from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 
-from bdaybot.src.schemas.custom_validators import ValidatorPhone, DateValidator
+from contacts_book.src.schemas.custom_validators import ValidatorPhone, DateValidator
 
 
 class AddContactSchema(BaseModel):

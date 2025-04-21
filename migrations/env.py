@@ -7,8 +7,8 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from bdaybot.src.bd_connect.conf.config import configuration
-from bdaybot.src.models.models import Base
+from contacts_book.src.bd_connect.conf.config import configuration
+from contacts_book.src.models.models import Base
 
 
 config = context.config

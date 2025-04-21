@@ -7,9 +7,8 @@ from sqlalchemy.sql import func, literal
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-
-from bdaybot.src.models.models import Person, Email, Phone
-from bdaybot.src.schemas.request_schema import AddContactSchema, ContactUpdateSchema, PhoneUpdateSchema, \
+from contacts_book.src.models.models import Person, Email, Phone
+from contacts_book.src.schemas.request_schema import AddContactSchema, ContactUpdateSchema, PhoneUpdateSchema, \
     EmailUpdateSchema, AddPhoneSchema, AddEmailSchema
 
 

@@ -1,10 +1,10 @@
 from fastapi import APIRouter, HTTPException, Query, Depends, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bdaybot.src.bd_connect.database.connection import get_db
-from bdaybot.src.repository import bday_bot as repositories
-from bdaybot.src.schemas.request_schema import AddContactSchema, ContactUpdateSchema
-from bdaybot.src.schemas.response_schema import ContactResponseSchema
+from contacts_book.src.bd_connect.database.connection import get_db
+from contacts_book.src.repository import book as repositories
+from contacts_book.src.schemas.request_schema import AddContactSchema, ContactUpdateSchema
+from contacts_book.src.schemas.response_schema import ContactResponseSchema
 
 router = APIRouter(tags=["Contacts"])
 

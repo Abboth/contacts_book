@@ -2,10 +2,10 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from bdaybot.src.bd_connect.database.connection import get_db
-from bdaybot.src.routes.contacts import router as contact_route
-from bdaybot.src.routes.contact_emails import router as email_route
-from bdaybot.src.routes.contact_phones import router as phone_route
+from contacts_book.src.bd_connect.database.connection import get_db
+from contacts_book.src.routes.contacts import router as contact_route
+from contacts_book.src.routes.contact_emails import router as email_route
+from contacts_book.src.routes.contact_phones import router as phone_route
 
 app = FastAPI()
 
