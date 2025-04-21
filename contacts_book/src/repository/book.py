@@ -17,9 +17,14 @@ async def show_all_contacts(limit: int, db: AsyncSession):
         selectinload(Person.email),
         selectinload(Person.phones)
     )
-    contacts = await db.execute(stmt)
+    result = await db.execute(stmt)
+    contacts = result.scalars().all()
 
-    return contacts.scalars().all()
+    if not contacts:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="You dont have any contacts yet")
+
+    return contacts
 
 
 async def get_contact_by_id(contact_id: int, db: AsyncSession):
@@ -27,9 +32,13 @@ async def get_contact_by_id(contact_id: int, db: AsyncSession):
         selectinload(Person.email),
         selectinload(Person.phones)
     )
-    contact = await db.execute(stmt)
+    result = await db.execute(stmt)
+    contact = result.scalar_one_or_none()
 
-    return contact.scalar_one_or_none()
+    if contact is None:
+        raise HTTPException(status_code=404, detail="Contact not found")
+
+    return contact
 
 
 async def get_contact_by_name(name: str, db: AsyncSession):
@@ -37,9 +46,14 @@ async def get_contact_by_name(name: str, db: AsyncSession):
         selectinload(Person.email),
         selectinload(Person.phones)
     )
-    contact = await db.execute(stmt)
+    result = await db.execute(stmt)
+    contact = result.scalars().all
 
-    return contact.scalars().all()
+    if not contact:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Not found any contacts with name like {name}")
+
+    return contact
 
 
 async def add_contact(body: AddContactSchema, db: AsyncSession):
@@ -73,20 +87,23 @@ async def update_contact(body: ContactUpdateSchema, contact_id: id, db: AsyncSes
     result = await db.execute(stmt)
     contact = result.scalar_one_or_none()
 
-    if contact:
-        contact.first_name = body.first_name
-        contact.last_name = body.last_name
-        contact.description = body.description
-        if not contact.birthday:
-            contact.birthday = body.birthday
+    if not contact:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Contact with this ID not found")
 
-        await db.commit()
-        await db.refresh(contact)
-        updated_contact = await db.execute(
-            stmt.options(selectinload(Person.email), selectinload(Person.phones)
-                         )
-        )
-        return updated_contact.scalar_one_or_none()
+    contact.first_name = body.first_name
+    contact.last_name = body.last_name
+    contact.description = body.description
+    if not contact.birthday:
+        contact.birthday = body.birthday
+
+    await db.commit()
+    updated_contact = await db.execute(
+        stmt.options(selectinload(Person.email), selectinload(Person.phones)
+                     )
+    )
+
+    return updated_contact.scalar_one_or_none()
 
 
 async def add_phone(body: AddPhoneSchema, contact_id: id, db: AsyncSession):
@@ -96,7 +113,7 @@ async def add_phone(body: AddPhoneSchema, contact_id: id, db: AsyncSession):
 
     if not person:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Contact not found")
+                            detail="Contact with this ID not found")
 
     tag_exists = await db.scalar(
         select(exists()
@@ -125,7 +142,8 @@ async def update_phone(body: PhoneUpdateSchema, contact_id: id, tag: str, db: As
     contact_phone = result.scalar_one_or_none()
 
     if not contact_phone:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email with given tag not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Phone with given tag not found for this contact")
 
     contact_phone.phone = str(body.phone_number)
 
@@ -141,7 +159,8 @@ async def add_email(body: AddEmailSchema, contact_id: id, db: AsyncSession):
     person = result.scalar_one_or_none()
 
     if not person:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Contact with this ID not found")
 
     tag_exists = await db.scalar(
         select(exists()
@@ -151,7 +170,8 @@ async def add_email(body: AddEmailSchema, contact_id: id, db: AsyncSession):
     )
 
     if tag_exists:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This tag already used for this contact")
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                            detail="This tag already used for this contact")
 
     email = Email(email=body.email,
                   tag=body.mail_tag,
@@ -169,7 +189,8 @@ async def update_email(body: EmailUpdateSchema, contact_id: id, tag: str, db: As
     contact_email = result.scalar_one_or_none()
 
     if not contact_email:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Email with given tag not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail="Email with given tag not found for this contact")
 
     contact_email.email = str(body.email)
 
