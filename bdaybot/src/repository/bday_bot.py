@@ -13,8 +13,8 @@ from bdaybot.src.schemas.request_schema import AddContactSchema, ContactUpdateSc
     EmailUpdateSchema, AddPhoneSchema, AddEmailSchema
 
 
-async def show_all_contacts(limit: int, offset: int, db: AsyncSession):
-    stmt = select(Person).offset(offset).limit(limit).options(
+async def show_all_contacts(limit: int, db: AsyncSession):
+    stmt = select(Person).limit(limit).options(
         selectinload(Person.email),
         selectinload(Person.phones)
     )
