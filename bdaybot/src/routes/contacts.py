@@ -21,6 +21,13 @@ async def get_contacts_upcoming_birthday(db:AsyncSession = Depends(get_db)):
 
     return contacts
 
+@router.get("/{name}", response_model=list[ContactResponseSchema])
+async def get_persons_by_name(name: str = Path(min_length=2), db: AsyncSession = Depends(get_db)):
+    contact = await repositories.get_contact_by_name(name, db)
+    if contact is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact this ID is not exist")
+
+    return contact
 
 @router.put("/{contact_id}", response_model=ContactResponseSchema)
 async def update_person(body: ContactUpdateSchema, contact_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)):

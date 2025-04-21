@@ -33,6 +33,16 @@ async def get_contact_by_id(contact_id: int, db: AsyncSession):
     return contact.scalar_one_or_none()
 
 
+async def get_contact_by_name(name: str, db: AsyncSession):
+    stmt = select(Person).where(Person.first_name.ilike("%" + name + "%")).options(
+        selectinload(Person.email),
+        selectinload(Person.phones)
+    )
+    contact = await db.execute(stmt)
+
+    return contact.scalars().all()
+
+
 async def add_contact(body: AddContactSchema, db: AsyncSession):
     contact = Person(
         first_name=body.first_name,
