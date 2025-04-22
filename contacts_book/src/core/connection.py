@@ -4,7 +4,7 @@ from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine, AsyncSession
 
-from contacts_book.src.bd_connect.conf.config import configuration
+from contacts_book.src.core.config import configuration
 
 logging.basicConfig(level=logging.INFO)
 

@@ -2,12 +2,15 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from contacts_book.src.bd_connect.database.connection import get_db
-from contacts_book.src.routes.contacts import router as contact_route
-from contacts_book.src.routes.contact_emails import router as email_route
-from contacts_book.src.routes.contact_phones import router as phone_route
+from contacts_book.src.core.connection import get_db
+from contacts_book.src.contacts.routes.contacts import router as contact_route
+from contacts_book.src.contacts.routes.contact_emails import router as email_route
+from contacts_book.src.contacts.routes.contact_phones import router as phone_route
+from contacts_book.src.auth.routes import router as auth_route
 
 app = FastAPI()
+
+app.include_router(auth_route, prefix="/auth", tags=["Authorization"])
 
 app.include_router(contact_route, prefix="/contact", tags=["Contacts"])
 app.include_router(email_route, prefix="/contact/email", tags=["Emails"])

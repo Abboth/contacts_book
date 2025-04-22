@@ -7,20 +7,20 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from contacts_book.src.bd_connect.conf.config import configuration
-from contacts_book.src.models.models import Base
+from contacts_book.src.core.config import configuration
+from contacts_book.src.core.base import Base
+from contacts_book.src.auth.models import AuthSession
+from contacts_book.src.contacts.models import Contact, Email, Phone
+from contacts_book.src.users.models import User
 
 
 config = context.config
-
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
 config.set_main_option("sqlalchemy.url", configuration.DB_URL)
-
-
 
 
 def run_migrations_offline() -> None:
@@ -46,11 +46,11 @@ def run_migrations_offline() -> None:
     with context.begin_transaction():
         context.run_migrations()
 
+
 def run_migrations(connection: Connection):
     context.configure(connection=connection, target_metadata=target_metadata)
     with context.begin_transaction():
         context.run_migrations()
-
 
 
 async def run_async_migration():
@@ -74,6 +74,7 @@ def run_migrations_online() -> None:
 
     """
     asyncio.run(run_async_migration())
+
 
 if context.is_offline_mode():
     run_migrations_offline()

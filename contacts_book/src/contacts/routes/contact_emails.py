@@ -1,10 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends, Path, status
+from fastapi import APIRouter, Depends, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from contacts_book.src.bd_connect.database.connection import get_db
-from contacts_book.src.repository import book as repositories
-from contacts_book.src.schemas.request_schema import AddEmailSchema, EmailUpdateSchema
-from contacts_book.src.schemas.response_schema import EmailResponseSchema
+from contacts_book.src.core.connection import get_db
+from contacts_book.src.contacts import repository as repositories
+from contacts_book.src.contacts.schemas.request_schema import AddEmailSchema, EmailUpdateSchema
+from contacts_book.src.contacts.schemas.response_schema import EmailResponseSchema
 
 router = APIRouter(tags=["Emails"])
 
