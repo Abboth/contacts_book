@@ -4,6 +4,7 @@ from fastapi import Depends
 from libgravatar import Gravatar
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from contacts_book.src.core.connection import get_db
 from contacts_book.src.users.models import User
@@ -12,11 +13,14 @@ from contacts_book.src.users.schemas import UserSchema
 logging.basicConfig(level=logging.INFO)
 
 async def get_user_by_email(email: str, db: AsyncSession = Depends(get_db)):
-    stmt = select(User).filter(User.email == email)
+    stmt = (
+        select(User)
+        .options(selectinload(User.auth_session),
+                 selectinload(User.contacts))
+        .where(User.email == email)
+    )
     result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-
-    return user
+    return result.scalars().first()
 
 
 async def create_new_user(body: UserSchema, db: AsyncSession = Depends(get_db)):

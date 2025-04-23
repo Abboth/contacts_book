@@ -17,26 +17,10 @@ class Contact(Base):
     created_at: Mapped[date] = mapped_column(Date, default=func.now())
     updated_at: Mapped[date] = mapped_column(Date, nullable=True, onupdate=func.now())
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))  # корректно
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
 
-    user = relationship("User", back_populates="contacts")  # правильно
-    phones = relationship("Phone", backref="contact", cascade="all, delete")
-    email = relationship("Email", backref="contact", cascade="all, delete")
-
-# class Contact(Base):
-#     __tablename__ = "contacts"
-#     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-#     first_name: Mapped[str] = mapped_column(String(25), index=True)
-#     last_name: Mapped[str] = mapped_column(String(25))
-#     birthday: Mapped[date] = mapped_column(Date, nullable=True)
-#     description: Mapped[str] = mapped_column(String(500), nullable=True)
-#
-#     created_at: Mapped[date] = mapped_column(Date, default=func.now())
-#     updated_at: Mapped[date] = mapped_column(Date, nullable=True, onupdate=func.now())
-#
-#     user_id = relationship("User", backref="contacts", cascade="all, delete")
-#     phones = relationship("Phone", backref="contacts", cascade="all, delete", lazy="selectin")
-#     email = relationship("Email", backref="contacts", cascade="all, delete", lazy="selectin")
+    phones = relationship("Phone", backref="contact", cascade="all, delete", lazy="joined")
+    email = relationship("Email", backref="contact", cascade="all, delete", lazy="joined")
 
 
 class Email(Base):
