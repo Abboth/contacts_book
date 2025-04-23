@@ -13,14 +13,10 @@ from contacts_book.src.users.schemas import UserSchema
 logging.basicConfig(level=logging.INFO)
 
 async def get_user_by_email(email: str, db: AsyncSession = Depends(get_db)):
-    stmt = (
-        select(User)
-        .options(selectinload(User.auth_session),
-                 selectinload(User.contacts))
-        .where(User.email == email)
-    )
+    stmt = select(User).where(User.email == email)
     result = await db.execute(stmt)
-    return result.scalars().first()
+    user = result.scalar_one_or_none()
+    return user
 
 
 async def create_new_user(body: UserSchema, db: AsyncSession = Depends(get_db)):

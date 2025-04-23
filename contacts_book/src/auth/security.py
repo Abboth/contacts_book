@@ -48,7 +48,7 @@ class Auth:
             expire = datetime.now() + timedelta(days=7)
         to_encode.update({"iat": datetime.now(), "exp": expire, "scope": "refresh_token"})
         encoded_refresh_token = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
-        return encoded_refresh_token
+        return {"token": encoded_refresh_token, "expires_at": expire}
 
 
     async def decode_refresh_token(self, refresh_token: str):

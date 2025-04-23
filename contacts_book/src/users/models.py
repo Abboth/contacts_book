@@ -20,4 +20,4 @@ class User(Base):
     updated_at: Mapped[date] = mapped_column(Date, nullable=True, onupdate=func.now())
 
     contacts = relationship("Contact", backref="user", cascade="all, delete", lazy="selectin")
-    auth_session = relationship("AuthSession",backref="user",cascade="all, delete", lazy="selectin")
+    auth_session = relationship("AuthSession", backref="user", cascade="all, delete", lazy="selectin")

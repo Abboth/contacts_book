@@ -1,3 +1,5 @@
+import contacts_book.src.core.models
+
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession

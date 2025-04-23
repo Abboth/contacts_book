@@ -24,7 +24,7 @@ async def signup(body: UserSchema, db: AsyncSession = Depends(get_db)):
     return new_user
 
 
-@router.post("/login", response_model=UserResponseSchema)
+@router.post("/login")
 async def login(body: OAuth2PasswordRequestForm = Depends(),
                 request: Request = None,
                 db: AsyncSession = Depends(get_db)):
@@ -38,9 +38,12 @@ async def login(body: OAuth2PasswordRequestForm = Depends(),
     user_device = await get_user_device(user_agent)
 
     access_token = await auth_security.create_access_token(data={"sub": user.email})
-    refresh_token = await auth_security.create_refresh_token(data={"sub": user.email})
+    refresh_token_data = await auth_security.create_refresh_token(data={"sub": user.email})
 
-    await auth_repository.update_token(user, user_device, refresh_token, db)
+    refresh_token = refresh_token_data["token"]
+    expires_at = refresh_token_data["expires_at"]
+
+    await auth_repository.update_token(user, user_device, refresh_token, expires_at, db)
     return {
         "access_token": access_token,
         "refresh_token": refresh_token,
