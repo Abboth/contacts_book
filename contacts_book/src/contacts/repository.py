@@ -10,13 +10,11 @@ from sqlalchemy.orm import selectinload
 from contacts_book.src.contacts.models import Email, Phone, Contact
 from contacts_book.src.contacts.schemas.request_schema import AddContactSchema, ContactUpdateSchema, PhoneUpdateSchema, \
     EmailUpdateSchema, AddPhoneSchema, AddEmailSchema
+from contacts_book.src.users.models import User
 
 
-async def show_all_contacts(limit: int, db: AsyncSession):
-    stmt = select(Contact).limit(limit).options(
-        selectinload(Contact.email),
-        selectinload(Contact.phones)
-    )
+async def show_all_contacts(limit: int, user: User, db: AsyncSession):
+    stmt = select(Contact).where(Contact.user_id == user.id).limit(limit)
     result = await db.execute(stmt)
     contacts = result.scalars().all()
 
@@ -27,27 +25,21 @@ async def show_all_contacts(limit: int, db: AsyncSession):
     return contacts
 
 
-async def get_contact_by_id(contact_id: int, db: AsyncSession):
-    stmt = select(Contact).where(Contact.id == contact_id).options(
-        selectinload(Contact.email),
-        selectinload(Contact.phones)
-    )
+async def get_contact_by_id(contact_id: int, user: User, db: AsyncSession):
+    stmt = select(Contact).where(Contact.id == contact_id, Contact.user_id == user.id)
     result = await db.execute(stmt)
     contact = result.scalar_one_or_none()
 
     if contact is None:
-        raise HTTPException(status_code=404, detail="Contact not found")
+        raise HTTPException(status_code=404, detail="Contact with this ID not found in your's contact book")
 
     return contact
 
 
-async def get_contact_by_name(name: str, db: AsyncSession):
-    stmt = select(Contact).where(Contact.first_name.ilike("%" + name + "%")).options(
-        selectinload(Contact.email),
-        selectinload(Contact.phones)
-    )
+async def get_contact_by_name(name: str, user: User, db: AsyncSession):
+    stmt = select(Contact).where(Contact.first_name.ilike("%" + name + "%"), Contact.user_id == user.id)
     result = await db.execute(stmt)
-    contact = result.scalars().all
+    contact = result.scalars().all()
 
     if not contact:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -56,12 +48,13 @@ async def get_contact_by_name(name: str, db: AsyncSession):
     return contact
 
 
-async def add_contact(body: AddContactSchema, db: AsyncSession):
+async def add_contact(body: AddContactSchema, user: User, db: AsyncSession):
     contact = Contact(
         first_name=body.first_name,
         last_name=body.last_name,
         birthday=body.birthday,
-        description=body.description
+        description=body.description,
+        user_id=user.id
     )
 
     if body.email:
@@ -73,23 +66,13 @@ async def add_contact(body: AddContactSchema, db: AsyncSession):
     await db.commit()
     await db.refresh(contact)
 
-    stmt = (select(Contact).where(Contact.id == contact.id).options(
-        selectinload(Contact.email),
-        selectinload(Contact.phones)
-    ))
-    result = await db.execute(stmt)
+    new_contact = get_contact_by_id(contact.id, user, db)
 
-    return result.scalar_one()
+    return new_contact
 
 
-async def update_contact(body: ContactUpdateSchema, contact_id: id, db: AsyncSession):
-    stmt = select(Contact).where(Contact.id == contact_id)
-    result = await db.execute(stmt)
-    contact = result.scalar_one_or_none()
-
-    if not contact:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Contact with this ID not found")
+async def update_contact(body: ContactUpdateSchema, contact_id: int, user: User, db: AsyncSession):
+    contact = get_contact_by_id(contact_id, user, db)
 
     contact.first_name = body.first_name
     contact.last_name = body.last_name
@@ -98,27 +81,18 @@ async def update_contact(body: ContactUpdateSchema, contact_id: id, db: AsyncSes
         contact.birthday = body.birthday
 
     await db.commit()
-    updated_contact = await db.execute(
-        stmt.options(selectinload(Contact.email), selectinload(Contact.phones)
-                     )
-    )
+    await db.refresh(contact)
 
-    return updated_contact.scalar_one_or_none()
+    return contact
 
 
-async def add_phone(body: AddPhoneSchema, contact_id: id, db: AsyncSession):
-    stmt = select(Contact).where(Contact.id == contact_id)
-    result = await db.execute(stmt)
-    person = result.scalar_one_or_none()
-
-    if not person:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Contact with this ID not found")
+async def add_phone(body: AddPhoneSchema, contact_id: int, user: User, db: AsyncSession):
+    contact = get_contact_by_id(contact_id, user, db)
 
     tag_exists = await db.scalar(
         select(exists()
-               .where(Phone.tag == body.phone_tag)
-               .where(Phone.contact_id == contact_id)
+               .where(Phone.tag == body.phone_tag,
+                      Phone.contact_id == contact_id)
                )
     )
 
@@ -131,12 +105,14 @@ async def add_phone(body: AddPhoneSchema, contact_id: id, db: AsyncSession):
                   contact_id=contact_id)
     db.add(phone)
     await db.commit()
-    await db.refresh(phone)
+    await db.refresh(contact)
 
-    return phone
+    return contact
 
 
-async def update_phone(body: PhoneUpdateSchema, contact_id: id, tag: str, db: AsyncSession):
+async def update_phone(body: PhoneUpdateSchema, contact_id: int, tag: str, user: User, db: AsyncSession):
+    contact = get_contact_by_id(contact_id, user, db)
+
     stmt = select(Phone).where(Phone.contact_id == contact_id).filter(Phone.tag == tag)
     result = await db.execute(stmt)
     contact_phone = result.scalar_one_or_none()
@@ -148,24 +124,18 @@ async def update_phone(body: PhoneUpdateSchema, contact_id: id, tag: str, db: As
     contact_phone.phone = str(body.phone_number)
 
     await db.commit()
-    await db.refresh(contact_phone)
+    await db.refresh(contact)
 
-    return contact_phone
+    return contact
 
 
-async def add_email(body: AddEmailSchema, contact_id: id, db: AsyncSession):
-    stmt = select(Contact).where(Contact.id == contact_id)
-    result = await db.execute(stmt)
-    person = result.scalar_one_or_none()
-
-    if not person:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Contact with this ID not found")
+async def add_email(body: AddEmailSchema, contact_id: int, user: User, db: AsyncSession):
+    contact = get_contact_by_id(contact_id, user, db)
 
     tag_exists = await db.scalar(
         select(exists()
-               .where(Phone.tag == body.phone_tag)
-               .where(Phone.contact_id == contact_id)
+               .where(Email.tag == body.mail_tag)
+               .where(Email.contact_id == contact_id)
                )
     )
 
@@ -178,12 +148,14 @@ async def add_email(body: AddEmailSchema, contact_id: id, db: AsyncSession):
                   contact_id=contact_id)
     db.add(email)
     await db.commit()
-    await db.refresh(email)
+    await db.refresh(contact)
 
-    return email
+    return contact
 
 
-async def update_email(body: EmailUpdateSchema, contact_id: id, tag: str, db: AsyncSession):
+async def update_email(body: EmailUpdateSchema, contact_id: int, tag: str, user: User, db: AsyncSession):
+    contact = get_contact_by_id(contact_id, user, db)
+
     stmt = select(Email).where(Email.contact_id == contact_id).filter(Email.tag == tag)
     result = await db.execute(stmt)
     contact_email = result.scalar_one_or_none()
@@ -195,12 +167,12 @@ async def update_email(body: EmailUpdateSchema, contact_id: id, tag: str, db: As
     contact_email.email = str(body.email)
 
     await db.commit()
-    await db.refresh(contact_email)
+    await db.refresh(contact)
 
-    return contact_email
+    return contact
 
 
-async def get_contacts_birthday(db: AsyncSession):
+async def get_contacts_birthday(user: User, db: AsyncSession):
     today = datetime.now().date()
     days_range_check = today + timedelta(days=7)
 
@@ -210,25 +182,19 @@ async def get_contacts_birthday(db: AsyncSession):
         cast(extract("day", Contact.birthday), Integer)
     )
 
-    stmt = (select(Contact).where(cast(birthday_this_year, Date).
-                                 between(today, days_range_check)).
-            options(selectinload(Contact.email),
-                    selectinload(Contact.phones)
-                    )
-            )
+    stmt = select(Contact).where(cast(birthday_this_year, Date).
+                                 between(today, days_range_check), Contact.user_id == user.id)
 
     birthdays = await db.execute(stmt)
 
     return birthdays.scalars().all()
 
 
-async def delete_contact(person_id: id, db: AsyncSession):
-    stmt = select(Contact).where(Contact.id == person_id)
-    result = await db.execute(stmt)
-    person = result.scalar_one_or_none()
+async def delete_contact(contact_id: int, user: User, db: AsyncSession):
+    contact = get_contact_by_id(contact_id, user, db)
 
-    if person:
-        await db.delete(person)
+    if contact:
+        await db.delete(contact)
         await db.commit()
 
-    return person
+    return contact
