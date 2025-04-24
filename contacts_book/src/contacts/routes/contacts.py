@@ -55,9 +55,8 @@ async def get_person(contact_id: int = Path(ge=1), db: AsyncSession = Depends(ge
 @router.delete("/{contact_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_person(contact_id: int = Path(ge=1), db: AsyncSession = Depends(get_db),
                            current_user: User = Depends(auth_security.get_current_user)):
-    contact = await repositories.delete_contact(contact_id, current_user, db)
+    _ = await repositories.delete_contact(contact_id, current_user, db)
 
-    return contact
 
 
 @router.get("/name/{name}", response_model=list[ContactResponseSchema])

@@ -4,12 +4,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from contacts_book.src.auth.services import get_user_device
 from contacts_book.src.core.connection import get_db
-from contacts_book.src.auth.schemas import TokenSchema  # TODO
+from contacts_book.src.auth.schemas import TokenSchema
 from contacts_book.src.auth import repository as auth_repository
 from contacts_book.src.users import repository as user_repository
 from contacts_book.src.users.models import User
-from contacts_book.src.users.schemas import UserResponseSchema, UserSchema  # TODO
-from contacts_book.src.auth.security import auth_security
+from contacts_book.src.users.repository import get_user_by_email
+from contacts_book.src.users.schemas import UserResponseSchema, UserSchema
+from contacts_book.src.auth.security import auth_security, get_refresh_token
 
 router = APIRouter(tags=["Authorization"])
 
@@ -34,12 +35,11 @@ async def login(body: OAuth2PasswordRequestForm = Depends(),
     if not auth_security.verify_password(body.password, user.hashed_pwd):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password")
 
-    user_agent = request.headers.get("user-agent")
-    user_device = await get_user_device(user_agent)
 
     access_token = await auth_security.create_access_token(data={"sub": user.email})
     refresh_token_data = await auth_security.create_refresh_token(data={"sub": user.email})
 
+    user_device = await get_user_device(request)
     refresh_token = refresh_token_data["token"]
     expires_at = refresh_token_data["expires_at"]
 
@@ -50,20 +50,25 @@ async def login(body: OAuth2PasswordRequestForm = Depends(),
         "token_type": "bearer",
         "device_type": user_device
     }
-#
-#
-# @router.get('/refresh_token')
-# async def refresh_token(credentials: HTTPAuthorizationCredentials = Security(), db: AsyncSession = Depends(get_db)):
-#     token = credentials.credentials
-#     email = await auth_security.decode_refresh_token(token)
-#     user = db.query(User).filter(User.email == email).first()
-#     if user.refresh_token != token:
-#         user.refresh_token = None
-#         db.commit()
-#         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
-#
-#     access_token = await auth_security.create_access_token(data={"sub": email})
-#     refresh_token = await auth_security.create_refresh_token(data={"sub": email})
-#     user.refresh_token = refresh_token
-#     db.commit()
-#     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
+
+
+@router.get('/refresh_token')
+async def refresh_token(credentials: HTTPAuthorizationCredentials = Security(get_refresh_token),
+                        request: Request = None,
+                        db: AsyncSession = Depends(get_db)):
+    token = credentials.credentials
+    email = await auth_security.decode_refresh_token(token)
+    user: User = await get_user_by_email(email, db)
+    session = next((s for s in user.auth_session if s.refresh_token == token), None)
+    if not session:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid refresh token")
+
+    access_token = await auth_security.create_access_token(data={"sub": email})
+    refresh_token_data = await auth_security.create_refresh_token(data={"sub": email})
+
+    user_device = await get_user_device(request)
+    refresh_token = refresh_token_data["token"]
+    expires_at = refresh_token_data["expires_at"]
+
+    await auth_repository.update_token(user, user_device, refresh_token, expires_at, db)
+    return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}

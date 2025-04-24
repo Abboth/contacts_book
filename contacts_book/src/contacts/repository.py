@@ -14,7 +14,8 @@ from contacts_book.src.users.models import User
 
 
 async def show_all_contacts(limit: int, user: User, db: AsyncSession):
-    stmt = select(Contact).where(Contact.user_id == user.id).limit(limit)
+    stmt = select(Contact).where(Contact.user_id == user.id).limit(limit).options(selectinload(Contact.email),
+                                                                                  selectinload(Contact.phones))
     result = await db.execute(stmt)
     contacts = result.scalars().all()
 
@@ -26,7 +27,9 @@ async def show_all_contacts(limit: int, user: User, db: AsyncSession):
 
 
 async def get_contact_by_id(contact_id: int, user: User, db: AsyncSession):
-    stmt = select(Contact).where(Contact.id == contact_id, Contact.user_id == user.id)
+    stmt = select(Contact).where(Contact.id == contact_id,
+                                  Contact.user_id == user.id).options(selectinload(Contact.email),
+                                                                      selectinload(Contact.phones))
     result = await db.execute(stmt)
     contact = result.scalar_one_or_none()
 
@@ -37,7 +40,9 @@ async def get_contact_by_id(contact_id: int, user: User, db: AsyncSession):
 
 
 async def get_contact_by_name(name: str, user: User, db: AsyncSession):
-    stmt = select(Contact).where(Contact.first_name.ilike("%" + name + "%"), Contact.user_id == user.id)
+    stmt = select(Contact).where(Contact.first_name.ilike("%" + name + "%"),
+                                 Contact.user_id == user.id).options(selectinload(Contact.email),
+                                                                     selectinload(Contact.phones))
     result = await db.execute(stmt)
     contact = result.scalars().all()
 
@@ -66,13 +71,11 @@ async def add_contact(body: AddContactSchema, user: User, db: AsyncSession):
     await db.commit()
     await db.refresh(contact)
 
-    new_contact = get_contact_by_id(contact.id, user, db)
-
-    return new_contact
+    return contact
 
 
 async def update_contact(body: ContactUpdateSchema, contact_id: int, user: User, db: AsyncSession):
-    contact = get_contact_by_id(contact_id, user, db)
+    contact = await get_contact_by_id(contact_id, user, db)
 
     contact.first_name = body.first_name
     contact.last_name = body.last_name
@@ -87,7 +90,7 @@ async def update_contact(body: ContactUpdateSchema, contact_id: int, user: User,
 
 
 async def add_phone(body: AddPhoneSchema, contact_id: int, user: User, db: AsyncSession):
-    contact = get_contact_by_id(contact_id, user, db)
+    _ = await get_contact_by_id(contact_id, user, db)
 
     tag_exists = await db.scalar(
         select(exists()
@@ -105,13 +108,13 @@ async def add_phone(body: AddPhoneSchema, contact_id: int, user: User, db: Async
                   contact_id=contact_id)
     db.add(phone)
     await db.commit()
-    await db.refresh(contact)
+    await db.refresh(phone)
 
-    return contact
+    return phone
 
 
 async def update_phone(body: PhoneUpdateSchema, contact_id: int, tag: str, user: User, db: AsyncSession):
-    contact = get_contact_by_id(contact_id, user, db)
+    _ = await get_contact_by_id(contact_id, user, db)
 
     stmt = select(Phone).where(Phone.contact_id == contact_id).filter(Phone.tag == tag)
     result = await db.execute(stmt)
@@ -124,13 +127,13 @@ async def update_phone(body: PhoneUpdateSchema, contact_id: int, tag: str, user:
     contact_phone.phone = str(body.phone_number)
 
     await db.commit()
-    await db.refresh(contact)
+    await db.refresh(contact_phone)
 
-    return contact
+    return contact_phone
 
 
 async def add_email(body: AddEmailSchema, contact_id: int, user: User, db: AsyncSession):
-    contact = get_contact_by_id(contact_id, user, db)
+    _ = await get_contact_by_id(contact_id, user, db)
 
     tag_exists = await db.scalar(
         select(exists()
@@ -148,13 +151,13 @@ async def add_email(body: AddEmailSchema, contact_id: int, user: User, db: Async
                   contact_id=contact_id)
     db.add(email)
     await db.commit()
-    await db.refresh(contact)
+    await db.refresh(email)
 
-    return contact
+    return email
 
 
 async def update_email(body: EmailUpdateSchema, contact_id: int, tag: str, user: User, db: AsyncSession):
-    contact = get_contact_by_id(contact_id, user, db)
+    _ = await get_contact_by_id(contact_id, user, db)
 
     stmt = select(Email).where(Email.contact_id == contact_id).filter(Email.tag == tag)
     result = await db.execute(stmt)
@@ -167,9 +170,9 @@ async def update_email(body: EmailUpdateSchema, contact_id: int, tag: str, user:
     contact_email.email = str(body.email)
 
     await db.commit()
-    await db.refresh(contact)
+    await db.refresh(contact_email)
 
-    return contact
+    return contact_email
 
 
 async def get_contacts_birthday(user: User, db: AsyncSession):
@@ -182,8 +185,10 @@ async def get_contacts_birthday(user: User, db: AsyncSession):
         cast(extract("day", Contact.birthday), Integer)
     )
 
-    stmt = select(Contact).where(cast(birthday_this_year, Date).
-                                 between(today, days_range_check), Contact.user_id == user.id)
+    stmt = (select(Contact).where(cast(birthday_this_year, Date).
+                                 between(today, days_range_check), Contact.user_id == user.id).
+            options(selectinload(Contact.email),
+                    selectinload(Contact.phones)))
 
     birthdays = await db.execute(stmt)
 
@@ -191,7 +196,7 @@ async def get_contacts_birthday(user: User, db: AsyncSession):
 
 
 async def delete_contact(contact_id: int, user: User, db: AsyncSession):
-    contact = get_contact_by_id(contact_id, user, db)
+    contact = await get_contact_by_id(contact_id, user, db)
 
     if contact:
         await db.delete(contact)

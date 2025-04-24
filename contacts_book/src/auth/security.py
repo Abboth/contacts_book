@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 from passlib.context import CryptContext
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import OAuth2PasswordBearer, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import JWTError, jwt, ExpiredSignatureError
 
@@ -87,3 +87,4 @@ class Auth:
         return user
 
 auth_security = Auth()
+get_refresh_token = HTTPBearer()
