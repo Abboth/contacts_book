@@ -1,16 +1,15 @@
-Contact Book API
-A simple contact management system built with FastAPI.
+JWT-based user authentication and registration
 
-Features
+Role-based access control (admin, moderator, user)
 
 CRUD operations for contacts (only for authenticated users)
 
-Contact search by name, or id
+Search contacts by name or ID
 
-Get contacts with upcoming birthdays (within 7 days)
+Retrieve contacts with upcoming birthdays (within 7 days)
 
-Setup
+Asynchronous architecture with FastAPI
 
-poetry install
-alembic upgrade head
-uvicorn uvicorn contacts_book.app:app --reload
+Alembic database migrations
+
+Dependency management with Poetry
