@@ -1,15 +1,17 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, HTTPBearer
+from sqlalchemy import Enum
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import JWTError, jwt, ExpiredSignatureError
 
 from contacts_book.src.core.connection import get_db
 from contacts_book.src.core.config import configuration
 from contacts_book.src.users import repository as user_repository
+from contacts_book.src.users.models import Role, User
 
 
 class Auth:
@@ -86,5 +88,32 @@ class Auth:
             raise credentials_exception
         return user
 
+
 auth_security = Auth()
 get_refresh_token = HTTPBearer()
+
+class AccessLevel(str, Enum):
+    admin = "admin"
+    moderator = "moderator"
+    public = "public"
+
+
+class RoleVerification:
+    def __init__(self, allowed_roles: list[str]):
+        self.allowed_roles = allowed_roles
+
+
+    async def __call__(self, request: Request, current_user: User = Depends(auth_security.get_current_user)):
+        if current_user.role.role_name not in self.allowed_roles:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Forbidden"
+            )
+
+
+
+access = {
+    AccessLevel.public: RoleVerification(["admin", "moderator", "user"]),
+    AccessLevel.moderator: RoleVerification(["admin", "moderator"]),
+    AccessLevel.admin: RoleVerification(["admin"]),
+}
