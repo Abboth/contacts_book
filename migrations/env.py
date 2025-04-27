@@ -17,8 +17,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
-config.set_main_option("sqlalchemy.url", configuration.DB_URL)
-
+config.set_main_option("sqlalchemy.url", configuration.ASYNC_DB_URL)
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.

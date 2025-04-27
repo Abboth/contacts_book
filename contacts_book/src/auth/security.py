@@ -1,3 +1,4 @@
+import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -11,7 +12,9 @@ from jose import JWTError, jwt, ExpiredSignatureError
 from contacts_book.src.core.connection import get_db
 from contacts_book.src.core.config import configuration
 from contacts_book.src.users import repository as user_repository
-from contacts_book.src.users.models import Role, User
+from contacts_book.src.users.models import User
+
+logging.basicConfig(level=logging.INFO)
 
 
 class Auth:
@@ -26,10 +29,7 @@ class Auth:
     def get_password_hash(self, password: str):
         return self.pwd_context.hash(password)
 
-
-
     oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
-
 
     async def create_access_token(self, data: dict, expires_delta: Optional[float] = None):
         to_encode = data.copy()
@@ -41,7 +41,6 @@ class Auth:
         encoded_access_token = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
         return encoded_access_token
 
-
     async def create_refresh_token(self, data: dict, expires_delta: Optional[float] = None):
         to_encode = data.copy()
         if expires_delta:
@@ -52,6 +51,22 @@ class Auth:
         encoded_refresh_token = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
         return {"token": encoded_refresh_token, "expires_at": expire}
 
+    async def create_email_token(self, data: dict):
+        to_encode = data.copy()
+        expire = datetime.now() + timedelta(days=7)
+        to_encode.update({"iat": datetime.now(), "exp": expire})
+        token = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
+        return token
+
+    async def get_email_from_token(self, token: str):
+        try:
+            payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
+            email = payload["sub"]
+            return email
+        except JWTError as err:
+            logging.info(err)
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                                detail="Invalid token for email verification")
 
     async def decode_refresh_token(self, refresh_token: str):
         try:
@@ -65,6 +80,21 @@ class Auth:
         except JWTError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate credentials')
 
+    async def create_tracking_token(self, mail_id: str): # TODO ADD TO LETTERS
+        payload = {"mail_id": mail_id}
+        token = jwt.encode(payload, self.SECRET_KEY, algorithm=self.ALGORITHM)
+        return token
+
+    async def decode_tracking_token(self, token: str):
+        try:
+            payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
+            data = payload["mail_id"]
+            mail_id = data["tracking"]
+            print(mail_id)
+            return mail_id
+        except JWTError as err:
+            logging.info(err)
+            return None
 
     async def get_current_user(self, token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
         credentials_exception = HTTPException(
@@ -92,6 +122,7 @@ class Auth:
 auth_security = Auth()
 get_refresh_token = HTTPBearer()
 
+
 class AccessLevel(str, Enum):
     admin = "admin"
     moderator = "moderator"
@@ -102,14 +133,12 @@ class RoleVerification:
     def __init__(self, allowed_roles: list[str]):
         self.allowed_roles = allowed_roles
 
-
     async def __call__(self, request: Request, current_user: User = Depends(auth_security.get_current_user)):
         if current_user.role.role_name not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Forbidden"
             )
-
 
 
 access = {

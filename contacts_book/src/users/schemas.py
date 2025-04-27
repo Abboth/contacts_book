@@ -12,3 +12,4 @@ class UserResponseSchema(BaseModel):
     username: str
     email: EmailStr
     avatar: str
+

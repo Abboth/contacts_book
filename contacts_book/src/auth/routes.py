@@ -6,22 +6,27 @@ from contacts_book.src.auth.services import get_user_device
 from contacts_book.src.core.connection import get_db
 from contacts_book.src.auth.schemas import TokenSchema
 from contacts_book.src.auth import repository as auth_repository
+from contacts_book.src.auth.security import auth_security, get_refresh_token
+from contacts_book.src.mail_services.service import verification_letter
 from contacts_book.src.users import repository as user_repository
 from contacts_book.src.users.models import User
 from contacts_book.src.users.repository import get_user_by_email
 from contacts_book.src.users.schemas import UserResponseSchema, UserSchema
-from contacts_book.src.auth.security import auth_security, get_refresh_token
 
 router = APIRouter(tags=["Authorization"])
 
 
 @router.post("/signup", response_model=UserResponseSchema, status_code=status.HTTP_201_CREATED)
-async def signup(body: UserSchema, db: AsyncSession = Depends(get_db)):
+async def signup(body: UserSchema, request: Request, db: AsyncSession = Depends(get_db)):
     exist_user = await user_repository.get_user_by_email(str(body.email), db)
     if exist_user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account already exists")
     body.password = auth_security.get_password_hash(body.password)
     new_user = await user_repository.create_new_user(body, db)
+
+    await verification_letter(new_user, str(request.base_url))
+    await db.refresh(new_user)
+
     return new_user
 
 
@@ -32,9 +37,10 @@ async def login(body: OAuth2PasswordRequestForm = Depends(),
     user = await user_repository.get_user_by_email(str(body.username), db)
     if user is None:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email")
+    if not user.is_verified:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Email isn't confirmed yet")
     if not auth_security.verify_password(body.password, user.hashed_pwd):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid password")
-
 
     access_token = await auth_security.create_access_token(data={"sub": user.email})
     refresh_token_data = await auth_security.create_refresh_token(data={"sub": user.email})

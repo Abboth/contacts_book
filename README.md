@@ -3,7 +3,7 @@ A simple contact management system built with FastAPI.
 
 Features
 
-CRUD operations for contacts (only for authenticated users)
+CRUD operations for contacts (only for authenticated users) # TODO EDITE NEW CONCEPTION
 
 Contact search by name, or id
 
