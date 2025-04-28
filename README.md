@@ -2,13 +2,11 @@ JWT-based user authentication and registration
 
 Role-based access control (admin, moderator, user)
 
-CRUD operations for contacts (only for authenticated users) # TODO EDITE NEW CONCEPTION
-
-Search contacts by name or ID
-
-Retrieve contacts with upcoming birthdays (within 7 days)
+CRUD operations for theregram_proj (only for authenticated users) # TODO EDITE NEW CONCEPTION
 
 Asynchronous architecture with FastAPI
+
+Newsletter feature with Celery+Redis
 
 Alembic database migrations
 

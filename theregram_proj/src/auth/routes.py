@@ -2,16 +2,16 @@ from fastapi import Security, Depends, HTTPException, status, APIRouter, Request
 from fastapi.security import HTTPAuthorizationCredentials, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from contacts_book.src.auth.services import get_user_device
-from contacts_book.src.core.connection import get_db
-from contacts_book.src.auth.schemas import TokenSchema
-from contacts_book.src.auth import repository as auth_repository
-from contacts_book.src.auth.security import auth_security, get_refresh_token
-from contacts_book.src.mail_services.service import verification_letter
-from contacts_book.src.users import repository as user_repository
-from contacts_book.src.users.models import User
-from contacts_book.src.users.repository import get_user_by_email
-from contacts_book.src.users.schemas import UserResponseSchema, UserSchema
+from theregram_proj.src.auth.services import get_user_device
+from theregram_proj.src.core.connection import get_db
+from theregram_proj.src.auth.schemas import TokenSchema
+from theregram_proj.src.auth import repository as auth_repository
+from theregram_proj.src.auth.security import auth_security, get_refresh_token
+from theregram_proj.src.mail_services.service import verification_letter
+from theregram_proj.src.users import repository as user_repository
+from theregram_proj.src.users.models import User
+from theregram_proj.src.users.repository import get_user_by_email
+from theregram_proj.src.users.schemas import UserResponseSchema, UserSchema
 
 router = APIRouter(tags=["Authorization"])
 

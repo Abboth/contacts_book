@@ -1,6 +1,6 @@
-from contacts_book.src.auth.security import auth_security
-from contacts_book.src.mail_services.schemas import EmailTemplateSchema
-from contacts_book.src.users.models import User
+from theregram_proj.src.auth.security import auth_security
+from theregram_proj.src.mail_services.schemas import EmailTemplateSchema
+from theregram_proj.src.users.models import User
 
 
 async def prepare_email_verification(user: User, host: str, token, tracking_token):

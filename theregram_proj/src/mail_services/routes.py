@@ -3,13 +3,13 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import FileResponse
 
-from contacts_book.src.core.connection import get_db
-from contacts_book.src.auth.security import auth_security
-from contacts_book.src.users import repository as user_repository
-from contacts_book.src.users.repository import get_user_by_email
-from contacts_book.src.mail_services.schemas import UserVerifyingRequest
-from contacts_book.src.mail_services.service import verification_letter, send_email
-from contacts_book.src.mail_services import repository as mail_repository
+from theregram_proj.src.core.connection import get_db
+from theregram_proj.src.auth.security import auth_security
+from theregram_proj.src.users import repository as user_repository
+from theregram_proj.src.users.repository import get_user_by_email
+from theregram_proj.src.mail_services.schemas import UserVerifyingRequest
+from theregram_proj.src.mail_services.service import verification_letter, send_email
+from theregram_proj.src.mail_services import repository as mail_repository
 
 router = APIRouter(tags=["Email_services"])
 
@@ -74,8 +74,8 @@ async def open_letter_marker(tracking_token: str, db: AsyncSession = Depends(get
         mail_id = await auth_security.decode_tracking_token(tracking_token)
         print(mail_id)
     except Exception:
-        return FileResponse("contacts_book/src/statics/open_letter_indicator.png", media_type="image/png",
+        return FileResponse("theregram_proj/src/statics/open_letter_indicator.png", media_type="image/png",
                             content_disposition_type="inline")
     await mail_repository.mark_letter_as_opened(mail_id, db)
-    return FileResponse("contacts_book/src/statics/open_letter_indicator.png", media_type="image/png",
+    return FileResponse("theregram_proj/src/statics/open_letter_indicator.png", media_type="image/png",
                             content_disposition_type="inline")

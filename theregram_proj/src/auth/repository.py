@@ -3,8 +3,8 @@ from datetime import date
 from sqlalchemy.future import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from contacts_book.src.auth.models import AuthSession
-from contacts_book.src.users.models import User
+from theregram_proj.src.auth.models import AuthSession
+from theregram_proj.src.users.models import User
 
 
 async def update_token(user: User, device_type, token: str, expires_at: date, db: AsyncSession):

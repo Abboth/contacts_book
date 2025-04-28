@@ -3,7 +3,7 @@ from datetime import date
 from sqlalchemy import ForeignKey, String, Text, DateTime, func, JSON, Boolean, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from contacts_book.src.core.base import Base
+from theregram_proj.src.core.base import Base
 
 
 class EmailTemplates(Base):

@@ -9,10 +9,10 @@ from sqlalchemy import Enum
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import JWTError, jwt, ExpiredSignatureError
 
-from contacts_book.src.core.connection import get_db
-from contacts_book.src.core.config import configuration
-from contacts_book.src.users import repository as user_repository
-from contacts_book.src.users.models import User
+from theregram_proj.src.core.connection import get_db
+from theregram_proj.src.core.config import configuration
+from theregram_proj.src.users import repository as user_repository
+from theregram_proj.src.users.models import User
 
 logging.basicConfig(level=logging.INFO)
 
@@ -20,8 +20,8 @@ logging.basicConfig(level=logging.INFO)
 class Auth:
     pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-    SECRET_KEY = configuration.SECRET_KEY
-    ALGORITHM = "HS256"
+    SECRET_KEY = configuration.SECRET_KEY_JWT
+    ALGORITHM = configuration.ALGORITHM
 
     def verify_password(self, plain_password, hashed_password):
         return self.pwd_context.verify(plain_password, hashed_password)

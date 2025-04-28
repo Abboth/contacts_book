@@ -1,14 +1,12 @@
 import logging
 
-from fastapi import Depends
 from libgravatar import Gravatar
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
-from contacts_book.src.core.connection import get_db
-from contacts_book.src.users.models import User
-from contacts_book.src.users.schemas import UserSchema
+from theregram_proj.src.users.models import User
+from theregram_proj.src.users.schemas import UserSchema
 
 logging.basicConfig(level=logging.INFO)
 

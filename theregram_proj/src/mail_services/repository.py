@@ -2,9 +2,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
-from contacts_book.src.mail_services.schemas import EmailTemplateSchema
-from contacts_book.src.users.models import User
-from contacts_book.src.mail_services.models import Email, EmailTemplates
+from theregram_proj.src.mail_services.schemas import EmailTemplateSchema
+from theregram_proj.src.users.models import User
+from theregram_proj.src.mail_services.models import Email, EmailTemplates
 
 async def draft_letter(user: User, db: Session):
     new_letter = Email(

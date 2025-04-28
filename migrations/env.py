@@ -7,9 +7,9 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from contacts_book.src.core.config import configuration
-from contacts_book.src.core.base import Base
-from contacts_book.src.core.models import *
+from theregram_proj.src.core.config import configuration
+from theregram_proj.src.core.base import Base
+from theregram_proj.src.core.models import *
 
 config = context.config
 
@@ -17,7 +17,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 target_metadata = Base.metadata
-config.set_main_option("sqlalchemy.url", configuration.ASYNC_DB_URL)
+config.set_main_option("sqlalchemy.url", configuration.POSTGRES_ASYNC_URL)
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.

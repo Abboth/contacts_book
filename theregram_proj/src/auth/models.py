@@ -3,7 +3,7 @@ from datetime import date
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String, Date, Integer, ForeignKey, func
 
-from contacts_book.src.core.base import Base
+from theregram_proj.src.core.base import Base
 
 
 class AuthSession(Base):

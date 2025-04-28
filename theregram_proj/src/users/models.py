@@ -3,7 +3,7 @@ from datetime import date
 from sqlalchemy import String, func, Date, Integer, ForeignKey, Boolean, Table, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from contacts_book.src.core.base import Base
+from theregram_proj.src.core.base import Base
 
 followers = Table(
     "followers",

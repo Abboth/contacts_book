@@ -1,0 +1,52 @@
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - ${REDIS_PORT}
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PWD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: .
+    command: uvicorn theregram_proj.app:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      - SECRET_KEY_JWT=${SECRET_KEY_JWT}
+      - POSTGRES_ASYNC_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PWD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}
+      - CELERY_BROKER_URL=${REDIS_URL}
+      - CELERY_RESULT_BACKEND=${REDIS_URL}
+
+  celery:
+    build:
+      context: .
+    command: celery -A theregram_proj.celery_worker.celery_app worker --loglevel=info --pool=solo
+    volumes:
+      - .:/app
+    depends_on:
+      - backend
+      - redis
+      - postgres
+    environment:
+      - SECRET_KEY_JWT=${SECRET_KEY_JWT}
+      - POSTGRES_SYNC_URL=postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PWD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}
+      - CELERY_BROKER_URL=${REDIS_URL}
+      - CELERY_RESULT_BACKEND=${REDIS_URL}
+
+volumes:
+  postgres-data:

@@ -1,4 +1,4 @@
-import contacts_book.src.core.models
+import theregram_proj.src.core.models
 
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -6,13 +6,13 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-from contacts_book.src.core.connection import get_db
-from contacts_book.src.auth.routes import router as auth_route
-from contacts_book.src.mail_services.routes import router as service_route
+from theregram_proj.src.core.connection import get_db
+from theregram_proj.src.auth.routes import router as auth_route
+from theregram_proj.src.mail_services.routes import router as service_route
 
 app = FastAPI()
 
-app.mount("/statics", StaticFiles(directory="contacts_book/src/statics"), name="statics")
+app.mount("/statics", StaticFiles(directory="theregram_proj/src/statics"), name="statics")
 
 app.include_router(auth_route, prefix="/auth", tags=["Authorization"])
 

@@ -6,13 +6,13 @@ from fastapi_mail.errors import ConnectionErrors
 
 from sqlalchemy.orm import Session
 
-from contacts_book.src.auth.security import auth_security
-from contacts_book.src.core.config import celery_app, mail_conf
-from contacts_book.src.core.connection import sync_sessionmanager
-from contacts_book.src.mail_services.prepare_letters_template import prepare_email_verification, prepare_password_reset
-from contacts_book.src.mail_services import repository as mail_repository
-from contacts_book.src.users import repository as user_repository
-from contacts_book.src.users.models import User
+from theregram_proj.src.auth.security import auth_security
+from theregram_proj.src.core.connection import celery_app, mail_conf
+from theregram_proj.src.core.connection import sync_sessionmanager
+from theregram_proj.src.mail_services.prepare_letters_template import prepare_email_verification, prepare_password_reset
+from theregram_proj.src.mail_services import repository as mail_repository
+from theregram_proj.src.users import repository as user_repository
+from theregram_proj.src.users.models import User
 
 logging.basicConfig(level=logging.INFO)
 
