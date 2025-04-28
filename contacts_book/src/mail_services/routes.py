@@ -40,7 +40,7 @@ async def verify_request(body: UserVerifyingRequest, request: Request,
         return {"message": "Your email is already confirmed"}
 
 
-@router.post('/reset_password')  # TODO CHANGE ARGUMENTS AND MAKE GOOD CHAIN
+@router.post('/reset_password')
 async def password_change_request(body: UserVerifyingRequest, request: Request, db: AsyncSession = Depends(get_db)):
     user = await get_user_by_email(str(body.email), db)
     if user:

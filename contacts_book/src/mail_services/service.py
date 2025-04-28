@@ -35,7 +35,7 @@ async def mail_processing(email: str, host: str, email_type: str):
 async def verify_email(user: User, host: str, letter_id: int, db: Session):
     try:
         verification_token = await auth_security.create_email_token({"sub": user.email})
-        tracking_token = await auth_security.create_tracking_token({"tracking": letter_id})
+        tracking_token = await auth_security.create_tracking_token(letter_id)
         message = MessageSchema(
             subject="Confirm your email",
             recipients=[user.email],
@@ -56,7 +56,7 @@ async def verify_email(user: User, host: str, letter_id: int, db: Session):
 async def reset_password(user: User, host: str, letter_id: int, db: Session):
     try:
         token_verification = await auth_security.create_email_token({"sub": user.email})
-        tracking_token = await auth_security.create_tracking_token({"tracking": letter_id})
+        tracking_token = await auth_security.create_tracking_token(letter_id)
         message = MessageSchema(
             subject="Reset you'r password",
             recipients=[user.email],

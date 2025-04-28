@@ -80,7 +80,7 @@ class Auth:
         except JWTError:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate credentials')
 
-    async def create_tracking_token(self, mail_id: str): # TODO ADD TO LETTERS
+    async def create_tracking_token(self, mail_id: str):
         payload = {"mail_id": mail_id}
         token = jwt.encode(payload, self.SECRET_KEY, algorithm=self.ALGORITHM)
         return token
@@ -88,8 +88,7 @@ class Auth:
     async def decode_tracking_token(self, token: str):
         try:
             payload = jwt.decode(token, self.SECRET_KEY, algorithms=[self.ALGORITHM])
-            data = payload["mail_id"]
-            mail_id = data["tracking"]
+            mail_id = payload["mail_id"]
             print(mail_id)
             return mail_id
         except JWTError as err:
