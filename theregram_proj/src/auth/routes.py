@@ -1,10 +1,10 @@
 from fastapi import Security, Depends, HTTPException, status, APIRouter, Request
 from fastapi.security import HTTPAuthorizationCredentials, OAuth2PasswordRequestForm
+from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from theregram_proj.src.auth.services import get_user_device
 from theregram_proj.src.core.connection import get_db
-from theregram_proj.src.auth.schemas import TokenSchema
 from theregram_proj.src.auth import repository as auth_repository
 from theregram_proj.src.auth.security import auth_security, get_refresh_token
 from theregram_proj.src.mail_services.service import verification_letter
@@ -16,8 +16,13 @@ from theregram_proj.src.users.schemas import UserResponseSchema, UserSchema
 router = APIRouter(tags=["Authorization"])
 
 
-@router.post("/signup", response_model=UserResponseSchema, status_code=status.HTTP_201_CREATED)
-async def signup(body: UserSchema, request: Request, db: AsyncSession = Depends(get_db)):
+@router.post("/signup", response_model=UserResponseSchema,
+             status_code=status.HTTP_201_CREATED,
+             dependencies=[Depends(RateLimiter(times=4, seconds=60))]
+             )
+async def signup(body: UserSchema,
+           request: Request,
+           db: AsyncSession = Depends(get_db)):
     exist_user = await user_repository.get_user_by_email(str(body.email), db)
     if exist_user:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account already exists")

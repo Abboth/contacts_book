@@ -7,6 +7,7 @@ from fastapi_mail import ConnectionConfig
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
+import cloudinary
 
 from theregram_proj.src.core.config import configuration
 
@@ -32,6 +33,7 @@ class AsyncDatabaseSessionManager:
             raise
         finally:
             await session.close()
+
 
 class SyncDatabaseSessionManager:
     def __init__(self, url: str):
@@ -66,6 +68,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 def my_celery_task():
     with sync_sessionmanager.session() as sync_session:
         yield sync_session
+
 
 celery_app = Celery(
     "theregram_proj",

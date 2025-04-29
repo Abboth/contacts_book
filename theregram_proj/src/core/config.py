@@ -23,8 +23,14 @@ class Settings(BaseSettings):
 
     REDIS_DOMAIN: str = "redis"
     REDIS_PORT: int = 21342
-    REDIS_PWD: str = "redis"
+    REDIS_PWD: str | None = None
     REDIS_URL: str = "redis://redis:0000/0"
+
+    CLOUDINARY_CLOUD: str = "unidfiunwqea"
+    CLOUDINARY_API_KEY: int = 998584823489192
+    CLOUDINARY_SECRET_KEY: str = "M9JQWEOJUNasfndWUawW0"
+    CLOUDINARY_SECURE: bool = True
+    CLOUDINARY_URL: str = "cloudinary://991232532532:Moujnw3123UW123ssw249640@dqveqtvreywk?secure=True"
 
     model_config = ConfigDict(extra='ignore', env_file=".env", env_file_decoding="utf-8")  # noqa
 

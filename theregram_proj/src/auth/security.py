@@ -11,6 +11,7 @@ from jose import JWTError, jwt, ExpiredSignatureError
 
 from theregram_proj.src.core.connection import get_db
 from theregram_proj.src.core.config import configuration
+from theregram_proj.src.services.redis_service import redis_manager
 from theregram_proj.src.users import repository as user_repository
 from theregram_proj.src.users.models import User
 
@@ -112,9 +113,16 @@ class Auth:
                 raise credentials_exception
         except JWTError:
             raise credentials_exception
-        user = await user_repository.get_user_by_email(email, db)
-        if user is None:
-            raise credentials_exception
+        user = await redis_manager.get_obj(f"user:{email}")
+
+        if not user:
+            logging.info("im from database")
+            user = await user_repository.get_user_by_email(email, db)
+            if user is None:
+                raise credentials_exception
+            await redis_manager.set_obj(f"user:{email}", user, ex=300)
+        else:
+            logging.info("im from cache")
         return user
 
 

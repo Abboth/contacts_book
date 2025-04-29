@@ -11,7 +11,7 @@ from theregram_proj.src.users.schemas import UserSchema
 logging.basicConfig(level=logging.INFO)
 
 
-async def get_user_by_email(email: str, db: AsyncSession) -> User:
+async def get_user_by_email(email: str, db: AsyncSession) -> User | None:
     stmt = select(User).where(User.email == email)
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
@@ -58,3 +58,11 @@ async def change_password(email: str, hashed_pwd, db: AsyncSession) -> User:
 
     return user
 
+async def update_avatar(email: str, avatar_url: str | None, db: AsyncSession) -> User:
+    user = await get_user_by_email(email, db)
+    user.avatar = avatar_url
+
+    await db.commit()
+    await db.refresh(user)
+
+    return user

@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import String, func, Date, Integer, ForeignKey, Boolean, Table, Column
+from sqlalchemy import String, func, Date, Integer, ForeignKey, Boolean, Table, Column, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from theregram_proj.src.core.base import Base
@@ -27,6 +27,7 @@ class User(Base):
     email: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     hashed_pwd: Mapped[str] = mapped_column(String(255), nullable=False)
     avatar: Mapped[str] = mapped_column(String(255))
+    last_activity: Mapped[date] = mapped_column(DateTime, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"), default=3)
