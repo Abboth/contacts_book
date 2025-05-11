@@ -7,9 +7,9 @@ from sqlalchemy import pool
 
 from alembic import context
 
-from theregram_proj.src.core.config import configuration
-from theregram_proj.src.core.base import Base
-from theregram_proj.src.core.models import *
+from src.core.config import configuration
+from src.core.base import Base
+from src.core.models import *
 
 config = context.config
 

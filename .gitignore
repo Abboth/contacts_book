@@ -1,4 +1,4 @@
 .env
 /.idea/
-/theregram_proj/src/core/config.py
-/theregram_proj/src/templates/messages.html
+src/core/config.py
+src/templates/messages.html
