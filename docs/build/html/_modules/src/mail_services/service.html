@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>src.mail_services.service &#8212; theregram  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/nature.css?v=279e0f84" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">theregram  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">src.mail_services.service</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for src.mail_services.service</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span><span class="w"> </span><span class="nn">asyncio</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">logging</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi_mail</span><span class="w"> </span><span class="kn">import</span> <span class="n">FastMail</span><span class="p">,</span> <span class="n">MessageSchema</span><span class="p">,</span> <span class="n">MessageType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi_mail.errors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConnectionErrors</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.core.connection</span><span class="w"> </span><span class="kn">import</span> <span class="n">celery_app</span><span class="p">,</span> <span class="n">mail_conf</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.mail_services</span><span class="w"> </span><span class="kn">import</span> <span class="n">repository</span> <span class="k">as</span> <span class="n">mail_repository</span>
+
+<span class="n">logging</span><span class="o">.</span><span class="n">basicConfig</span><span class="p">(</span><span class="n">level</span><span class="o">=</span><span class="n">logging</span><span class="o">.</span><span class="n">INFO</span><span class="p">)</span>
+
+
+<span class="nd">@celery_app</span><span class="o">.</span><span class="n">task</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">celery_task_email</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">letter_id</span><span class="p">,</span> <span class="n">template_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Celery task that sends an email using asynchronous processing.</span>
+
+<span class="sd">    :param email: Recipient&#39;s email address.</span>
+<span class="sd">    :type email: str</span>
+<span class="sd">    :param letter_id: ID of the drafted letter for tracking and logging.</span>
+<span class="sd">    :type letter_id: int</span>
+<span class="sd">    :param template_data: Email content, template name, and params.</span>
+<span class="sd">    :type template_data: dict</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    :rtype: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">asyncio</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">email_processing</span><span class="p">(</span><span class="n">email</span><span class="p">,</span> <span class="n">letter_id</span><span class="p">,</span> <span class="n">template_data</span><span class="p">))</span>
+
+
+
+<div class="viewcode-block" id="email_processing">
+<a class="viewcode-back" href="../../../index.html#src.mail_services.service.email_processing">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">email_processing</span><span class="p">(</span><span class="n">email</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">letter_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">template_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Process the email sending asynchronously using FastMail.</span>
+
+<span class="sd">    :param email: Recipient&#39;s email address.</span>
+<span class="sd">    :type email: str</span>
+<span class="sd">    :param letter_id: ID of the drafted letter for tracking and logging.</span>
+<span class="sd">    :type letter_id: int</span>
+<span class="sd">    :param template_data: Email content, subject, template name, and params.</span>
+<span class="sd">    :type template_data: dict</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    :rtype: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">message</span> <span class="o">=</span> <span class="n">MessageSchema</span><span class="p">(</span>
+            <span class="n">subject</span><span class="o">=</span><span class="n">template_data</span><span class="p">[</span><span class="s2">&quot;subject&quot;</span><span class="p">],</span>
+            <span class="n">recipients</span><span class="o">=</span><span class="p">[</span><span class="n">email</span><span class="p">],</span>
+            <span class="n">template_body</span><span class="o">=</span><span class="n">template_data</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">],</span>
+                    <span class="n">subtype</span><span class="o">=</span><span class="n">MessageType</span><span class="o">.</span><span class="n">html</span>
+        <span class="p">)</span>
+        <span class="n">fm</span> <span class="o">=</span> <span class="n">FastMail</span><span class="p">(</span><span class="n">mail_conf</span><span class="p">)</span>
+        <span class="k">await</span> <span class="n">fm</span><span class="o">.</span><span class="n">send_message</span><span class="p">(</span><span class="n">message</span><span class="p">,</span> <span class="n">template_name</span><span class="o">=</span><span class="n">template_data</span><span class="p">[</span><span class="s2">&quot;template_name&quot;</span><span class="p">])</span>
+        <span class="k">await</span> <span class="n">mail_repository</span><span class="o">.</span><span class="n">letter_register</span><span class="p">(</span><span class="n">letter_id</span><span class="p">,</span> <span class="n">template_data</span><span class="p">)</span>
+
+    <span class="k">except</span> <span class="n">ConnectionErrors</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+        <span class="n">logging</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="n">err</span><span class="p">)</span></div>
+
+
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">theregram  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">src.mail_services.service</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, Abboth.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    </div>
+  </body>
+</html>

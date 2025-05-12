@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>src.mail_services.repository &#8212; theregram  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/nature.css?v=279e0f84" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">theregram  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">src.mail_services.repository</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for src.mail_services.repository</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">status</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">select</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.ext.asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncSession</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">Session</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.core.connection</span><span class="w"> </span><span class="kn">import</span> <span class="n">sync_sessionmanager</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.users.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">User</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.mail_services.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">Email</span><span class="p">,</span> <span class="n">EmailTemplates</span>
+
+<div class="viewcode-block" id="draft_letter">
+<a class="viewcode-back" href="../../../index.html#src.mail_services.repository.draft_letter">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">draft_letter</span><span class="p">(</span><span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a draft email letter for the given user.</span>
+
+<span class="sd">    :param user: Authenticated user.</span>
+<span class="sd">    :type user: User</span>
+<span class="sd">    :param db: Database session.</span>
+<span class="sd">    :type db: Session</span>
+<span class="sd">    :return: ID of the created draft letter.</span>
+<span class="sd">    :rtype: int</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">new_letter</span> <span class="o">=</span> <span class="n">Email</span><span class="p">(</span>
+        <span class="n">user_id</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+        <span class="n">template_id</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">new_letter</span><span class="p">)</span>
+    <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+    <span class="n">mail_id</span> <span class="o">=</span> <span class="n">new_letter</span><span class="o">.</span><span class="n">id</span>
+    <span class="k">return</span> <span class="n">mail_id</span></div>
+
+
+<div class="viewcode-block" id="get_letter_by_id_sync">
+<a class="viewcode-back" href="../../../index.html#src.mail_services.repository.get_letter_by_id_sync">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_letter_by_id_sync</span><span class="p">(</span><span class="n">mail_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Email</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieve a letter by its ID (synchronous version for celery).</span>
+
+<span class="sd">    :param mail_id: ID of the letter.</span>
+<span class="sd">    :type mail_id: int</span>
+<span class="sd">    :param db: Database session.</span>
+<span class="sd">    :type db: Session</span>
+<span class="sd">    :return: Email object if found, else None.</span>
+<span class="sd">    :rtype: Email | None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">stmt</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">Email</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">Email</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">mail_id</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">stmt</span><span class="p">)</span>
+    <span class="n">letter</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">scalar_one_or_none</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">letter</span></div>
+
+
+<div class="viewcode-block" id="get_letter_by_id_async">
+<a class="viewcode-back" href="../../../index.html#src.mail_services.repository.get_letter_by_id_async">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_letter_by_id_async</span><span class="p">(</span><span class="n">mail_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Email</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieve a letter by its ID (asynchronous version).</span>
+
+<span class="sd">    :param mail_id: ID of the letter.</span>
+<span class="sd">    :type mail_id: int</span>
+<span class="sd">    :param db: Asynchronous database session.</span>
+<span class="sd">    :type db: AsyncSession</span>
+<span class="sd">    :return: Email object if found, else None.</span>
+<span class="sd">    :rtype: Email | None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">stmt</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">Email</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">Email</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">mail_id</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">stmt</span><span class="p">)</span>
+    <span class="n">letter</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">scalar_one_or_none</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">letter</span></div>
+
+
+<div class="viewcode-block" id="get_or_create_template">
+<a class="viewcode-back" href="../../../index.html#src.mail_services.repository.get_or_create_template">[docs]</a>
+<span class="k">def</span><span class="w"> </span><span class="nf">get_or_create_template</span><span class="p">(</span><span class="n">template_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">Session</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">EmailTemplates</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieve an existing template by name or create a new one.</span>
+
+<span class="sd">    :param template_data: dict with template name, subject, and params.</span>
+<span class="sd">    :type template_data: dict</span>
+<span class="sd">    :param db: Database session.</span>
+<span class="sd">    :type db: Session</span>
+<span class="sd">    :return: Existing or newly created template.</span>
+<span class="sd">    :rtype: EmailTemplates</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">name</span> <span class="o">=</span> <span class="n">template_data</span><span class="p">[</span><span class="s2">&quot;template_name&quot;</span><span class="p">]</span>
+    <span class="n">stmt</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">EmailTemplates</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">EmailTemplates</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">stmt</span><span class="p">)</span>
+    <span class="n">template</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">scalar_one_or_none</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">template</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">template</span>
+
+    <span class="n">template</span> <span class="o">=</span> <span class="n">EmailTemplates</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">template_data</span><span class="p">[</span><span class="s2">&quot;template_name&quot;</span><span class="p">],</span>
+                              <span class="n">subject</span><span class="o">=</span><span class="n">template_data</span><span class="p">[</span><span class="s2">&quot;subject&quot;</span><span class="p">],</span>
+                              <span class="n">params</span><span class="o">=</span><span class="n">template_data</span><span class="p">[</span><span class="s2">&quot;params&quot;</span><span class="p">])</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">template</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">template</span></div>
+
+
+
+<div class="viewcode-block" id="mark_letter_as_opened">
+<a class="viewcode-back" href="../../../index.html#src.mail_services.repository.mark_letter_as_opened">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">mark_letter_as_opened</span><span class="p">(</span><span class="n">mail_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Mark a letter as opened by updating its status.</span>
+
+<span class="sd">    :param mail_id: ID of the letter.</span>
+<span class="sd">    :type mail_id: int</span>
+<span class="sd">    :param db: Asynchronous database session.</span>
+<span class="sd">    :type db: AsyncSession</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    :rtype: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">letter</span><span class="p">:</span> <span class="n">Email</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_letter_by_id_async</span><span class="p">(</span><span class="n">mail_id</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">letter</span><span class="p">:</span>
+        <span class="n">letter</span><span class="o">.</span><span class="n">opened</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="letter_register">
+<a class="viewcode-back" href="../../../index.html#src.mail_services.repository.letter_register">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">letter_register</span><span class="p">(</span><span class="n">letter_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">template_data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Assign a template to a letter and mark it as sent.</span>
+
+<span class="sd">    :param letter_id: ID of the letter to register.</span>
+<span class="sd">    :type letter_id: int</span>
+<span class="sd">    :param template_data: dict of data to use.</span>
+<span class="sd">    :type template_data: dict</span>
+<span class="sd">    :param db: Database session.</span>
+<span class="sd">    :type db: Session</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    :rtype: None</span>
+<span class="sd">    :raises Exception: If the draft letter is not found.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">with</span> <span class="n">sync_sessionmanager</span><span class="o">.</span><span class="n">session</span><span class="p">()</span> <span class="k">as</span> <span class="n">db</span><span class="p">:</span>
+        <span class="n">template</span> <span class="o">=</span> <span class="n">get_or_create_template</span><span class="p">(</span><span class="n">template_data</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+
+        <span class="n">letter</span> <span class="o">=</span> <span class="n">get_letter_by_id_sync</span><span class="p">(</span><span class="n">letter_id</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">letter</span><span class="p">:</span>
+            <span class="n">letter</span><span class="o">.</span><span class="n">template_id</span> <span class="o">=</span> <span class="n">template</span><span class="o">.</span><span class="n">id</span>
+            <span class="n">letter</span><span class="o">.</span><span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;sent&quot;</span>
+            <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Letter draft not found&quot;</span><span class="p">)</span></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">theregram  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">src.mail_services.repository</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, Abboth.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    </div>
+  </body>
+</html>

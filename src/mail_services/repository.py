@@ -105,8 +105,8 @@ async def mark_letter_as_opened(mail_id: int, db: AsyncSession) -> None:
     :rtype: None
     """
 
-    letter: Email = await get_letter_by_id_async(mail_id, db)
-    if letter:
+    letter = await get_letter_by_id_async(mail_id, db)
+    if not letter.opened:
         letter.opened = True
         await db.commit()
 

@@ -167,7 +167,7 @@ async def add_phone(body: AddPhoneSchema, contact_id: int, user: User, db: Async
     :return: new phone for existing contact
     :rtype: ContactsPhone
     """
-    users_contact_exist = await get_contact_by_id(contact_id, user, db)
+    await get_contact_by_id(contact_id, user, db)
 
     tag_exists = await db.scalar(
         select(exists()
@@ -208,7 +208,7 @@ async def update_phone(body: PhoneUpdateSchema, contact_id: int, tag: str, user:
     :return: updated phone for existing contact
     :rtype: ContactsPhone
     """
-    users_contact_exist = await get_contact_by_id(contact_id, user, db)
+    await get_contact_by_id(contact_id, user, db)
 
     stmt = select(ContactsPhone).where(ContactsPhone.contact_id == contact_id).filter(ContactsPhone.tag == tag)
     result = await db.execute(stmt)
@@ -282,7 +282,7 @@ async def update_email(body: EmailUpdateSchema, contact_id: int, tag: str, user:
     :return: updated email for existing contact
     :rtype: ContactsEmail
     """
-    users_contact_exist = await get_contact_by_id(contact_id, user, db)
+    await get_contact_by_id(contact_id, user, db)
 
     stmt = select(ContactsEmail).where(ContactsEmail.contact_id == contact_id).filter(ContactsEmail.tag == tag)
     result = await db.execute(stmt)

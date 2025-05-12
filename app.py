@@ -1,4 +1,4 @@
-
+import src.core.models
 
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -11,8 +11,6 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
-from src.core import models
 from src.core.connection import get_db
 from src.auth.routes import router as auth_route
 from src.mail_services.routes import router as service_route

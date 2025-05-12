@@ -105,7 +105,7 @@ async def confirmed_email(email: str, db: AsyncSession) -> None:
     await db.commit()
 
 
-async def change_password(email: str, hashed_pwd: str, db: AsyncSession) -> None:
+async def change_password(email: str, new_hashed_pwd: str, db: AsyncSession) -> None:
     """
     Change current password of user for new one
 
@@ -118,7 +118,7 @@ async def change_password(email: str, hashed_pwd: str, db: AsyncSession) -> None
     :return: refreshed user data
     """
     user = await get_user_by_email(email, db)
-    user.hashed_pwd = hashed_pwd
+    user.hashed_pwd = new_hashed_pwd
 
     await db.commit()
     await db.refresh(user)

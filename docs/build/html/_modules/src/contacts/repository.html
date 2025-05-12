@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>src.contacts.repository &#8212; theregram  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=8f2a1f02" />
+    <link rel="stylesheet" type="text/css" href="../../../_static/nature.css?v=279e0f84" />
+    <script src="../../../_static/documentation_options.js?v=5929fcd5"></script>
+    <script src="../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">theregram  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" accesskey="U">Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">src.contacts.repository</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for src.contacts.repository</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span><span class="w"> </span><span class="nn">datetime</span><span class="w"> </span><span class="kn">import</span> <span class="n">datetime</span><span class="p">,</span> <span class="n">timedelta</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">List</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">fastapi</span><span class="w"> </span><span class="kn">import</span> <span class="n">HTTPException</span><span class="p">,</span> <span class="n">status</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy</span><span class="w"> </span><span class="kn">import</span> <span class="n">exists</span><span class="p">,</span> <span class="n">extract</span><span class="p">,</span> <span class="n">cast</span><span class="p">,</span> <span class="n">Date</span><span class="p">,</span> <span class="n">Integer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.sql</span><span class="w"> </span><span class="kn">import</span> <span class="n">func</span><span class="p">,</span> <span class="n">literal</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.future</span><span class="w"> </span><span class="kn">import</span> <span class="n">select</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.ext.asyncio</span><span class="w"> </span><span class="kn">import</span> <span class="n">AsyncSession</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sqlalchemy.orm</span><span class="w"> </span><span class="kn">import</span> <span class="n">selectinload</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.contacts.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">ContactsEmail</span><span class="p">,</span> <span class="n">ContactsPhone</span><span class="p">,</span> <span class="n">Contact</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.contacts.schemas.request_schema</span><span class="w"> </span><span class="kn">import</span> <span class="n">AddContactSchema</span><span class="p">,</span> <span class="n">ContactUpdateSchema</span><span class="p">,</span> <span class="n">PhoneUpdateSchema</span><span class="p">,</span> \
+    <span class="n">EmailUpdateSchema</span><span class="p">,</span> <span class="n">AddPhoneSchema</span><span class="p">,</span> <span class="n">AddEmailSchema</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">src.users.models</span><span class="w"> </span><span class="kn">import</span> <span class="n">User</span>
+
+
+<div class="viewcode-block" id="show_all_contacts">
+<a class="viewcode-back" href="../../../index.html#src.contacts.repository.show_all_contacts">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">show_all_contacts</span><span class="p">(</span><span class="n">limit</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Contact</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieves list with limited count of contacts for a specific user.</span>
+
+<span class="sd">    :param limit: limit of users to retrieve from database</span>
+<span class="sd">    :type limit: int</span>
+<span class="sd">    :param user: The user to retrieve list of contacts for.</span>
+<span class="sd">    :type user: User</span>
+<span class="sd">    :param db: The database session.</span>
+<span class="sd">    :type db: AsyncSession</span>
+<span class="sd">    :return: list of contacts</span>
+<span class="sd">    :rtype: list[Contact]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stmt</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">Contact</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">Contact</span><span class="o">.</span><span class="n">user_id</span> <span class="o">==</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">limit</span><span class="p">(</span><span class="n">limit</span><span class="p">)</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">selectinload</span><span class="p">(</span><span class="n">Contact</span><span class="o">.</span><span class="n">email</span><span class="p">),</span>
+                                                                                  <span class="n">selectinload</span><span class="p">(</span><span class="n">Contact</span><span class="o">.</span><span class="n">phones</span><span class="p">))</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">stmt</span><span class="p">)</span>
+    <span class="n">contacts</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">scalars</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">contacts</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span>
+                            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;You dont have any contacts yet&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">contacts</span></div>
+
+
+
+<div class="viewcode-block" id="get_contact_by_id">
+<a class="viewcode-back" href="../../../index.html#src.contacts.repository.get_contact_by_id">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_contact_by_id</span><span class="p">(</span><span class="n">contact_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Contact</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieves list with limited count of contacts for a specific user.</span>
+
+<span class="sd">    :param contact_id: contact to find</span>
+<span class="sd">    :type contact_id: int</span>
+<span class="sd">    :param user: The user to retrieve contact for.</span>
+<span class="sd">    :type user: User</span>
+<span class="sd">    :param db: The database session.</span>
+<span class="sd">    :type db: AsyncSession</span>
+<span class="sd">    :return: list of contacts</span>
+<span class="sd">    :rtype: Contact</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stmt</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">Contact</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">Contact</span><span class="o">.</span><span class="n">id</span> <span class="o">==</span> <span class="n">contact_id</span><span class="p">,</span>
+                                 <span class="n">Contact</span><span class="o">.</span><span class="n">user_id</span> <span class="o">==</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">selectinload</span><span class="p">(</span><span class="n">Contact</span><span class="o">.</span><span class="n">email</span><span class="p">),</span>
+                                                                     <span class="n">selectinload</span><span class="p">(</span><span class="n">Contact</span><span class="o">.</span><span class="n">phones</span><span class="p">))</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">stmt</span><span class="p">)</span>
+    <span class="n">contact</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">scalar_one_or_none</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">contact</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="mi">404</span><span class="p">,</span> <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Contact with this ID not found in your&#39;s contact book&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">contact</span></div>
+
+
+
+<div class="viewcode-block" id="get_contact_by_name">
+<a class="viewcode-back" href="../../../index.html#src.contacts.repository.get_contact_by_name">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_contact_by_name</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Contact</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Retrieves list of contacts with matches by name for a specific user.</span>
+
+<span class="sd">    :param name: name of contact to find</span>
+<span class="sd">    :type name: str</span>
+<span class="sd">    :param user: The user to retrieve contact for.</span>
+<span class="sd">    :type user: User</span>
+<span class="sd">    :param db: The database session.</span>
+<span class="sd">    :type db: AsyncSession</span>
+<span class="sd">    :return: list of contacts with name like looking for</span>
+<span class="sd">    :rtype: list[Contact]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">stmt</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">Contact</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">Contact</span><span class="o">.</span><span class="n">first_name</span><span class="o">.</span><span class="n">ilike</span><span class="p">(</span><span class="s2">&quot;%&quot;</span> <span class="o">+</span> <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;%&quot;</span><span class="p">),</span>
+                                 <span class="n">Contact</span><span class="o">.</span><span class="n">user_id</span> <span class="o">==</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span><span class="n">options</span><span class="p">(</span><span class="n">selectinload</span><span class="p">(</span><span class="n">Contact</span><span class="o">.</span><span class="n">email</span><span class="p">),</span>
+                                                                     <span class="n">selectinload</span><span class="p">(</span><span class="n">Contact</span><span class="o">.</span><span class="n">phones</span><span class="p">))</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">stmt</span><span class="p">)</span>
+    <span class="n">contacts</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">scalars</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">contacts</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span>
+                            <span class="n">detail</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Not found any contacts with name like </span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">contacts</span></div>
+
+
+
+<div class="viewcode-block" id="add_contact">
+<a class="viewcode-back" href="../../../index.html#src.contacts.repository.add_contact">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">add_contact</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">AddContactSchema</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Contact</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create new contact for a specific user.</span>
+
+<span class="sd">    :param body: data to create new contact.</span>
+<span class="sd">    :type body: AddContactSchema</span>
+<span class="sd">    :param user: The user to retrieve contact for.</span>
+<span class="sd">    :type user: User</span>
+<span class="sd">    :param db: The database session.</span>
+<span class="sd">    :type db: AsyncSession</span>
+<span class="sd">    :return: new contact.</span>
+<span class="sd">    :rtype: Contact</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">contact</span> <span class="o">=</span> <span class="n">Contact</span><span class="p">(</span>
+        <span class="n">first_name</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">first_name</span><span class="p">,</span>
+        <span class="n">last_name</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">last_name</span><span class="p">,</span>
+        <span class="n">birthday</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">birthday</span><span class="p">,</span>
+        <span class="n">description</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
+        <span class="n">user_id</span><span class="o">=</span><span class="n">user</span><span class="o">.</span><span class="n">id</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">body</span><span class="o">.</span><span class="n">email</span><span class="p">:</span>
+        <span class="n">contact</span><span class="o">.</span><span class="n">email</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ContactsEmail</span><span class="p">(</span><span class="n">email</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">email</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">mail_tag</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">body</span><span class="o">.</span><span class="n">phone_number</span><span class="p">:</span>
+        <span class="n">contact</span><span class="o">.</span><span class="n">phones</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ContactsPhone</span><span class="p">(</span><span class="n">phone</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">phone_number</span><span class="p">,</span> <span class="n">tag</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">phone_tag</span><span class="p">))</span>
+
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">contact</span><span class="p">)</span>
+    <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">contact</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">contact</span></div>
+
+
+
+<div class="viewcode-block" id="update_contact">
+<a class="viewcode-back" href="../../../index.html#src.contacts.repository.update_contact">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">update_contact</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">ContactUpdateSchema</span><span class="p">,</span> <span class="n">contact_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Contact</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update existing contact for a specific user.</span>
+
+<span class="sd">    :param body: data to update existing contact.</span>
+<span class="sd">    :type body: ContactUpdateSchema</span>
+<span class="sd">    :param contact_id: contact to find</span>
+<span class="sd">    :type contact_id: int</span>
+<span class="sd">    :param user: The user to retrieve contact for.</span>
+<span class="sd">    :type user: User</span>
+<span class="sd">    :param db: The database session.</span>
+<span class="sd">    :type db: AsyncSession</span>
+<span class="sd">    :return: Updated contact.</span>
+<span class="sd">    :rtype: Contact</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">contact</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_contact_by_id</span><span class="p">(</span><span class="n">contact_id</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+
+    <span class="n">contact</span><span class="o">.</span><span class="n">first_name</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">first_name</span>
+    <span class="n">contact</span><span class="o">.</span><span class="n">last_name</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">last_name</span>
+    <span class="n">contact</span><span class="o">.</span><span class="n">description</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">description</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">contact</span><span class="o">.</span><span class="n">birthday</span><span class="p">:</span>
+        <span class="n">contact</span><span class="o">.</span><span class="n">birthday</span> <span class="o">=</span> <span class="n">body</span><span class="o">.</span><span class="n">birthday</span>
+
+    <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">contact</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">contact</span></div>
+
+
+
+<div class="viewcode-block" id="add_phone">
+<a class="viewcode-back" href="../../../index.html#src.contacts.repository.add_phone">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">add_phone</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">AddPhoneSchema</span><span class="p">,</span> <span class="n">contact_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContactsPhone</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add new phone number for existing contact with checking phone tag to not repeat.</span>
+
+<span class="sd">    :param body: Data to create contact new phone</span>
+<span class="sd">    :type body: AddPhoneSchema</span>
+<span class="sd">    :param contact_id: ID of contact to add phone</span>
+<span class="sd">    :type contact_id: int</span>
+<span class="sd">    :param user: The user to add contact phone.</span>
+<span class="sd">    :type user: User</span>
+<span class="sd">    :param db: The database session.</span>
+<span class="sd">    :type db: AsyncSession</span>
+<span class="sd">    :return: new phone for existing contact</span>
+<span class="sd">    :rtype: ContactsPhone</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">users_contact_exist</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_contact_by_id</span><span class="p">(</span><span class="n">contact_id</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+
+    <span class="n">tag_exists</span> <span class="o">=</span> <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span>
+        <span class="n">select</span><span class="p">(</span><span class="n">exists</span><span class="p">()</span>
+               <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ContactsPhone</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="n">body</span><span class="o">.</span><span class="n">phone_tag</span><span class="p">,</span>
+                      <span class="n">ContactsPhone</span><span class="o">.</span><span class="n">contact_id</span> <span class="o">==</span> <span class="n">contact_id</span><span class="p">)</span>
+               <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">tag_exists</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_409_CONFLICT</span><span class="p">,</span>
+                            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;This tag already used for this contact&quot;</span><span class="p">)</span>
+
+    <span class="n">phone</span> <span class="o">=</span> <span class="n">ContactsPhone</span><span class="p">(</span><span class="n">phone</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">phone_number</span><span class="p">,</span>
+                          <span class="n">tag</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">phone_tag</span><span class="p">,</span>
+                          <span class="n">contact_id</span><span class="o">=</span><span class="n">contact_id</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">phone</span><span class="p">)</span>
+    <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">phone</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">phone</span></div>
+
+
+
+<div class="viewcode-block" id="update_phone">
+<a class="viewcode-back" href="../../../index.html#src.contacts.repository.update_phone">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">update_phone</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">PhoneUpdateSchema</span><span class="p">,</span> <span class="n">contact_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">,</span>
+                       <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContactsPhone</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update phone by tag for existing contact.</span>
+
+<span class="sd">    :param body: Data to update contacts phone</span>
+<span class="sd">    :type body: PhoneUpdateSchema</span>
+<span class="sd">    :param contact_id: ID of contact to update phone</span>
+<span class="sd">    :type contact_id: int</span>
+<span class="sd">    :param tag: tag of phone</span>
+<span class="sd">    :type tag: str</span>
+<span class="sd">    :param user: The user to update contacts phone.</span>
+<span class="sd">    :type user: User</span>
+<span class="sd">    :param db: The database session.</span>
+<span class="sd">    :type db: AsyncSession</span>
+<span class="sd">    :return: updated phone for existing contact</span>
+<span class="sd">    :rtype: ContactsPhone</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">users_contact_exist</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_contact_by_id</span><span class="p">(</span><span class="n">contact_id</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+
+    <span class="n">stmt</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">ContactsPhone</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ContactsPhone</span><span class="o">.</span><span class="n">contact_id</span> <span class="o">==</span> <span class="n">contact_id</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">ContactsPhone</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="n">tag</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">stmt</span><span class="p">)</span>
+    <span class="n">contact_phone</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">scalar_one_or_none</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">contact_phone</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span>
+                            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Phone with given tag not found for this contact&quot;</span><span class="p">)</span>
+
+    <span class="n">contact_phone</span><span class="o">.</span><span class="n">phone</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">phone_number</span><span class="p">)</span>
+
+    <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">contact_phone</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">contact_phone</span></div>
+
+
+
+<div class="viewcode-block" id="add_email">
+<a class="viewcode-back" href="../../../index.html#src.contacts.repository.add_email">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">add_email</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">AddEmailSchema</span><span class="p">,</span> <span class="n">contact_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContactsEmail</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Add new email for existing contact with checking email tag to not repeat.</span>
+
+<span class="sd">    :param body: Data to create contact email.</span>
+<span class="sd">    :type body: AddEmailSchema</span>
+<span class="sd">    :param contact_id: ID of contact to add new email</span>
+<span class="sd">    :type contact_id: int</span>
+<span class="sd">    :param user: The user to add contact email.</span>
+<span class="sd">    :type user: User</span>
+<span class="sd">    :param db: The database session.</span>
+<span class="sd">    :type db: AsyncSession</span>
+<span class="sd">    :return: new email for existing contact</span>
+<span class="sd">    :rtype: ContactsEmail</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">users_contact_exist</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_contact_by_id</span><span class="p">(</span><span class="n">contact_id</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+
+    <span class="n">tag_exists</span> <span class="o">=</span> <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">scalar</span><span class="p">(</span>
+        <span class="n">select</span><span class="p">(</span><span class="n">exists</span><span class="p">()</span>
+               <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ContactsEmail</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="n">body</span><span class="o">.</span><span class="n">mail_tag</span><span class="p">)</span>
+               <span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ContactsEmail</span><span class="o">.</span><span class="n">contact_id</span> <span class="o">==</span> <span class="n">contact_id</span><span class="p">)</span>
+               <span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">tag_exists</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_409_CONFLICT</span><span class="p">,</span>
+                            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;This tag already used for this contact&quot;</span><span class="p">)</span>
+
+    <span class="n">email</span> <span class="o">=</span> <span class="n">ContactsEmail</span><span class="p">(</span><span class="n">email</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">email</span><span class="p">,</span>
+                          <span class="n">tag</span><span class="o">=</span><span class="n">body</span><span class="o">.</span><span class="n">mail_tag</span><span class="p">,</span>
+                          <span class="n">contact_id</span><span class="o">=</span><span class="n">contact_id</span><span class="p">)</span>
+    <span class="n">db</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+    <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">email</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">email</span></div>
+
+
+
+<div class="viewcode-block" id="update_email">
+<a class="viewcode-back" href="../../../index.html#src.contacts.repository.update_email">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">update_email</span><span class="p">(</span><span class="n">body</span><span class="p">:</span> <span class="n">EmailUpdateSchema</span><span class="p">,</span> <span class="n">contact_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tag</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">,</span>
+                       <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ContactsEmail</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Update email by tag for existing contact.</span>
+
+<span class="sd">    :param body: Data to update contacts email</span>
+<span class="sd">    :type body: EmailUpdateSchema</span>
+<span class="sd">    :param contact_id: ID of contact to update email</span>
+<span class="sd">    :type contact_id: int</span>
+<span class="sd">    :param tag: tag of email</span>
+<span class="sd">    :type tag: str</span>
+<span class="sd">    :param user: The user to update contacts email.</span>
+<span class="sd">    :type user: User</span>
+<span class="sd">    :param db: The database session.</span>
+<span class="sd">    :type db: AsyncSession</span>
+<span class="sd">    :return: updated email for existing contact</span>
+<span class="sd">    :rtype: ContactsEmail</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">users_contact_exist</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_contact_by_id</span><span class="p">(</span><span class="n">contact_id</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+
+    <span class="n">stmt</span> <span class="o">=</span> <span class="n">select</span><span class="p">(</span><span class="n">ContactsEmail</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">ContactsEmail</span><span class="o">.</span><span class="n">contact_id</span> <span class="o">==</span> <span class="n">contact_id</span><span class="p">)</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">ContactsEmail</span><span class="o">.</span><span class="n">tag</span> <span class="o">==</span> <span class="n">tag</span><span class="p">)</span>
+    <span class="n">result</span> <span class="o">=</span> <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">stmt</span><span class="p">)</span>
+    <span class="n">contact_email</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">scalar_one_or_none</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">contact_email</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="n">HTTPException</span><span class="p">(</span><span class="n">status_code</span><span class="o">=</span><span class="n">status</span><span class="o">.</span><span class="n">HTTP_404_NOT_FOUND</span><span class="p">,</span>
+                            <span class="n">detail</span><span class="o">=</span><span class="s2">&quot;Email with given tag not found for this contact&quot;</span><span class="p">)</span>
+
+    <span class="n">contact_email</span><span class="o">.</span><span class="n">email</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">body</span><span class="o">.</span><span class="n">email</span><span class="p">)</span>
+
+    <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+    <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">refresh</span><span class="p">(</span><span class="n">contact_email</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">contact_email</span></div>
+
+
+
+<div class="viewcode-block" id="get_contacts_birthday">
+<a class="viewcode-back" href="../../../index.html#src.contacts.repository.get_contacts_birthday">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">get_contacts_birthday</span><span class="p">(</span><span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Contact</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Gather contacts who has birthday in nearest 7 days</span>
+
+<span class="sd">    :param user: Current session user</span>
+<span class="sd">    :type user: User</span>
+<span class="sd">    :param db: The database session.</span>
+<span class="sd">    :type db: AsyncSession</span>
+<span class="sd">    :return: List of contact</span>
+<span class="sd">    :rtype: list[Contact]</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">today</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">date</span><span class="p">()</span>
+    <span class="n">days_range_check</span> <span class="o">=</span> <span class="n">today</span> <span class="o">+</span> <span class="n">timedelta</span><span class="p">(</span><span class="n">days</span><span class="o">=</span><span class="mi">7</span><span class="p">)</span>
+
+    <span class="n">birthday_this_year</span> <span class="o">=</span> <span class="n">func</span><span class="o">.</span><span class="n">make_date</span><span class="p">(</span>
+        <span class="n">literal</span><span class="p">(</span><span class="n">today</span><span class="o">.</span><span class="n">year</span><span class="p">),</span>
+        <span class="n">cast</span><span class="p">(</span><span class="n">extract</span><span class="p">(</span><span class="s2">&quot;month&quot;</span><span class="p">,</span> <span class="n">Contact</span><span class="o">.</span><span class="n">birthday</span><span class="p">),</span> <span class="n">Integer</span><span class="p">),</span>
+        <span class="n">cast</span><span class="p">(</span><span class="n">extract</span><span class="p">(</span><span class="s2">&quot;day&quot;</span><span class="p">,</span> <span class="n">Contact</span><span class="o">.</span><span class="n">birthday</span><span class="p">),</span> <span class="n">Integer</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="n">stmt</span> <span class="o">=</span> <span class="p">(</span><span class="n">select</span><span class="p">(</span><span class="n">Contact</span><span class="p">)</span><span class="o">.</span><span class="n">where</span><span class="p">(</span><span class="n">cast</span><span class="p">(</span><span class="n">birthday_this_year</span><span class="p">,</span> <span class="n">Date</span><span class="p">)</span><span class="o">.</span>
+                                  <span class="n">between</span><span class="p">(</span><span class="n">today</span><span class="p">,</span> <span class="n">days_range_check</span><span class="p">),</span> <span class="n">Contact</span><span class="o">.</span><span class="n">user_id</span> <span class="o">==</span> <span class="n">user</span><span class="o">.</span><span class="n">id</span><span class="p">)</span><span class="o">.</span>
+            <span class="n">options</span><span class="p">(</span><span class="n">selectinload</span><span class="p">(</span><span class="n">Contact</span><span class="o">.</span><span class="n">email</span><span class="p">),</span>
+                    <span class="n">selectinload</span><span class="p">(</span><span class="n">Contact</span><span class="o">.</span><span class="n">phones</span><span class="p">)))</span>
+
+    <span class="n">birthdays</span> <span class="o">=</span> <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">stmt</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">birthdays</span><span class="o">.</span><span class="n">scalars</span><span class="p">()</span><span class="o">.</span><span class="n">all</span><span class="p">()</span></div>
+
+
+
+<div class="viewcode-block" id="delete_contact">
+<a class="viewcode-back" href="../../../index.html#src.contacts.repository.delete_contact">[docs]</a>
+<span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">delete_contact</span><span class="p">(</span><span class="n">contact_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">user</span><span class="p">:</span> <span class="n">User</span><span class="p">,</span> <span class="n">db</span><span class="p">:</span> <span class="n">AsyncSession</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Contact</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Delete one contact of user</span>
+
+<span class="sd">    :param contact_id: ID of contact to delete</span>
+<span class="sd">    :type contact_id: int</span>
+<span class="sd">    :param user: Current session user</span>
+<span class="sd">    :type user: User</span>
+<span class="sd">    :param db: The database session.</span>
+<span class="sd">    :type db: AsyncSession</span>
+<span class="sd">    :return: Deleted contact</span>
+<span class="sd">    :rtype: Contact</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">contact</span> <span class="o">=</span> <span class="k">await</span> <span class="n">get_contact_by_id</span><span class="p">(</span><span class="n">contact_id</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">contact</span><span class="p">:</span>
+        <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">contact</span><span class="p">)</span>
+        <span class="k">await</span> <span class="n">db</span><span class="o">.</span><span class="n">commit</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="n">contact</span></div>
+
+</pre></div>
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../../index.html">theregram  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../../index.html" >Module code</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">src.contacts.repository</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; Copyright 2025, Abboth.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 8.2.3.
+    </div>
+  </body>
+</html>
