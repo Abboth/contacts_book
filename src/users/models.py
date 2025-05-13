@@ -1,6 +1,6 @@
-from datetime import date
+from datetime import date, datetime
 
-from sqlalchemy import String, func, Date, Integer, ForeignKey, Boolean, Table, Column, DateTime
+from sqlalchemy import String, func, Integer, ForeignKey, Boolean, Table, Column, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.base import Base
@@ -14,7 +14,7 @@ followers = Table(
 
 class Role(Base):
     __tablename__ = "roles"
-    id: Mapped[int] = mapped_column(primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     role_name: Mapped[str] = mapped_column(String(10), unique=True)
 
 
@@ -26,14 +26,14 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(40))
     email: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
     hashed_pwd: Mapped[str] = mapped_column(String(255), nullable=False)
-    avatar: Mapped[str] = mapped_column(String(255))
-    last_activity: Mapped[date] = mapped_column(DateTime, nullable=True)
+    avatar: Mapped[str] = mapped_column(String(255), nullable=True)
+    last_activity: Mapped[datetime] = mapped_column(DateTime, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=False)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"), default=3)
 
-    created_at: Mapped[date] = mapped_column(Date, default=func.now())
-    updated_at: Mapped[date] = mapped_column(Date, nullable=True, onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True, onupdate=func.now())
 
     role = relationship("Role", backref="user", lazy="selectin")
 

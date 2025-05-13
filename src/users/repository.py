@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
+from src.core import message
 from src.users.models import User
 from src.users.schemas import UserSchema
 
@@ -39,7 +40,7 @@ async def get_user_by_email(email: str, db: AsyncSession) -> User:
     """
     user = await get_user_by_email_or_none(email, db)
     if not user:
-        raise HTTPException(status_code=404, detail="Not exist user with that email")
+        raise HTTPException(status_code=404, detail=message.USER_NOT_FOUNDED_BY_EMAIL)
     return user
 
 def get_user_by_email_sync(email: str, db: Session) -> User | None:
@@ -58,7 +59,7 @@ def get_user_by_email_sync(email: str, db: Session) -> User | None:
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Not exist user with that email")
+                            detail=message.USER_NOT_FOUNDED_BY_EMAIL)
     return user
 
 

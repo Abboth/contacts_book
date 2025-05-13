@@ -11,6 +11,7 @@ from sqlalchemy.orm import selectinload
 from src.contacts.models import ContactsEmail, ContactsPhone, Contact
 from src.contacts.schemas.request_schema import AddContactSchema, ContactUpdateSchema, PhoneUpdateSchema, \
     EmailUpdateSchema, AddPhoneSchema, AddEmailSchema
+from src.core import message
 from src.users.models import User
 
 
@@ -216,7 +217,7 @@ async def update_phone(body: PhoneUpdateSchema, contact_id: int, tag: str, user:
 
     if not contact_phone:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Phone with given tag not found for this contact")
+                            detail=message.PHONE_TAG_NOT_FOUND)
 
     contact_phone.phone = str(body.phone_number)
 
@@ -252,7 +253,7 @@ async def add_email(body: AddEmailSchema, contact_id: int, user: User, db: Async
 
     if tag_exists:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT,
-                            detail="This tag already used for this contact")
+                            detail=message.TAG_ALREADY_EXIST)
 
     email = ContactsEmail(email=body.email,
                           tag=body.mail_tag,
@@ -290,7 +291,7 @@ async def update_email(body: EmailUpdateSchema, contact_id: int, tag: str, user:
 
     if not contact_email:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
-                            detail="Email with given tag not found for this contact")
+                            detail=message.EMAIL_TAG_NOT_FOUND)
 
     contact_email.email = str(body.email)
 

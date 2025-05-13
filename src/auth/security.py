@@ -1,4 +1,5 @@
 import logging
+import uuid
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -9,6 +10,7 @@ from sqlalchemy import Enum
 from sqlalchemy.ext.asyncio import AsyncSession
 from jose import JWTError, jwt, ExpiredSignatureError
 
+from src.core import message
 from src.core.connection import get_db
 from src.core.config import configuration
 from src.services.redis_service import redis_manager
@@ -75,7 +77,7 @@ class Auth:
             expire = datetime.now() + timedelta(seconds=expires_delta)
         else:
             expire = datetime.now() + timedelta(minutes=15)
-        to_encode.update({"iat": datetime.now(), "exp": expire, "scope": "access_token"})
+        to_encode.update({"iat": datetime.now(), "exp": expire, "scope": "access_token", "jti": str(uuid.uuid4())})
         encoded_access_token = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
         return encoded_access_token
 
@@ -95,7 +97,7 @@ class Auth:
             expire = datetime.now() + timedelta(seconds=expires_delta)
         else:
             expire = datetime.now() + timedelta(days=7)
-        to_encode.update({"iat": datetime.now(), "exp": expire, "scope": "refresh_token"})
+        to_encode.update({"iat": datetime.now(), "exp": expire, "scope": "refresh_token", "jti": str(uuid.uuid4())})
         encoded_refresh_token = jwt.encode(to_encode, self.SECRET_KEY, algorithm=self.ALGORITHM)
         return {"token": encoded_refresh_token, "expires_at": expire}
 
@@ -147,11 +149,11 @@ class Auth:
             if payload['scope'] == 'refresh_token':
                 email = payload['sub']
                 return email
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid scope for token')
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=message.INVALID_TOKEN_SCOPE)
         except ExpiredSignatureError:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token has expired")
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=message.EXPIRED_TOKEN)
         except JWTError:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Could not validate credentials')
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=message.BAD_CREDENTIALS)
 
     async def create_tracking_token(self, mail_id: str) -> str:
         """
@@ -259,7 +261,7 @@ class RoleVerification:
         if current_user.role.role_name not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Forbidden"
+                detail=message.FORBIDDEN
             )
 
 

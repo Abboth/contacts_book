@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from src.core.connection import sync_sessionmanager
+from src.core import message
 from src.users.models import User
 from src.mail_services.models import Email, EmailTemplates
 
@@ -135,4 +136,4 @@ async def letter_register(letter_id: int, template_data: dict) -> None:
             db.commit()
 
         else:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Letter draft not found")
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=message.DRAFT_LETTER_NOT_FOUND)
