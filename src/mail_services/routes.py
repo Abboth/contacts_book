@@ -3,6 +3,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import FileResponse
 
+from src.core import message
 from src.core.connection import get_db
 from src.auth.security import auth_security
 from src.mail_services.prepare_letters_template import prepare_email_verification, prepare_password_reset
@@ -31,8 +32,6 @@ async def confirm_email(token: str, db: AsyncSession = Depends(get_db)) -> dict:
 
     email = await auth_security.get_email_from_token(token)
     user = await user_repository.get_user_by_email(email, db)
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification error")
     if user.is_verified:
         return {"message": "Your email is already confirmed"}
     await user_repository.confirmed_email(email, db)
@@ -105,11 +104,10 @@ async def password_change_response(token: str, new_password: str = Form(), repea
     """
 
     email = await auth_security.get_email_from_token(token)
-    user = await user_repository.get_user_by_email(email, db)
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Verification error")
+    await user_repository.get_user_by_email(email, db)
+
     if new_password != repeat_password:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=message.PASSWORD_NOT_MATCH)
 
     hashed_pwd = auth_security.get_password_hash(new_password)
     await user_repository.change_password(email, hashed_pwd, db)
@@ -131,7 +129,6 @@ async def open_letter_marker(tracking_token: str, db: AsyncSession = Depends(get
 
     try:
         mail_id = await auth_security.decode_tracking_token(tracking_token)
-        print(mail_id)
     except HTTPException:
         return FileResponse("src/statics/open_letter_indicator.png", media_type="image/png",
                             content_disposition_type="inline")

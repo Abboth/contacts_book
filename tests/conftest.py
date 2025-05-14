@@ -29,8 +29,6 @@ import pytest_asyncio
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def init_models_wrap():
-    print(
-        "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
         await conn.run_sync(Base.metadata.create_all)
@@ -41,8 +39,7 @@ async def init_models_wrap():
             username=test_user["username"],
             email=test_user["email"],
             hashed_pwd=hashed_pwd,
-            role_id=test_user["role_id"],
-            is_verified=True
+            role_id=test_user["role_id"]
         )
         session.add_all([role, user])
         await session.commit()

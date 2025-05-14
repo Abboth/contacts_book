@@ -1,11 +1,9 @@
-from datetime import datetime, timedelta
-from unittest.mock import Mock, AsyncMock
+from unittest.mock import AsyncMock
 
 import pytest
 from fastapi_limiter import FastAPILimiter
 from sqlalchemy import select
 
-from src.auth.models import AuthSession
 from src.auth.security import auth_security
 from src.users.models import User
 from tests.conftest import TestingSessionLocal, client
