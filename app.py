@@ -19,6 +19,7 @@ from src.users.routes import router as user_route
 from src.contacts.routes.contacts import router as contact_route
 from src.contacts.routes.contact_emails import router as contact_email_route
 from src.contacts.routes.contact_phones import router as contact_phone_route
+from src.posts.routes import router as post_route
 from src.services.redis_service import redis_manager
 
 
@@ -43,6 +44,8 @@ app.include_router(contact_route, prefix="/contact", tags=["Contacts"])
 app.include_router(contact_phone_route, prefix="/contact/phone", tags=["Phones"])
 app.include_router(contact_email_route, prefix="/contact/email", tags=["Emails"])
 app.include_router(service_route, prefix="/service", tags=["Email_services"])
+app.include_router(post_route, prefix="/post", tags=["Posts"])
+
 
 
 @app.get("/")

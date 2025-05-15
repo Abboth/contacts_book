@@ -18,3 +18,5 @@ DRAFT_LETTER_NOT_FOUND = "Draft letter not found"
 PASSWORD_NOT_MATCH = "Password doesn't match"
 EMAIL_TAG_NOT_FOUND = "Email with given tag not found for this contact"
 PHONE_TAG_NOT_FOUND = "Phone with given tag not found for this contact"
+
+POST_NOT_FOUND = "Post not found"

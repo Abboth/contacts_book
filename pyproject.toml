@@ -28,6 +28,7 @@ dependencies = [
     "psycopg2 (>=2.9.10,<3.0.0)",
     "fastapi-limiter (>=0.1.6,<0.2.0)",
     "cloudinary (>=1.44.0,<2.0.0)",
+    "qrcode[pil] (>=8.2,<9.0)",
 ]
 
 

@@ -4,6 +4,7 @@ from sqlalchemy import String, func, Integer, ForeignKey, Boolean, Table, Column
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.base import Base
+from src.core import models
 
 followers = Table(
     "followers",

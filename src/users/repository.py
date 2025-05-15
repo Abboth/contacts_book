@@ -85,6 +85,8 @@ async def create_new_user(body: UserSchema, db: AsyncSession) -> User:
                     email=body.email,
                     hashed_pwd=body.password,
                     avatar=avatar)
+    if not db.scalar(select(User).limit(1)):
+        new_user.role_id = 1
 
     db.add(new_user)
     await db.commit()

@@ -137,7 +137,7 @@ async def delete_person(contact_id: int = Path(ge=1), db: AsyncSession = Depends
     :return: None.
     :rtype: None
     """
-    _ = await repositories.delete_contact(contact_id, current_user, db)
+    await repositories.delete_contact(contact_id, current_user, db)
 
 
 
