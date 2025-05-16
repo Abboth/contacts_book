@@ -17,7 +17,22 @@ from src.posts.repositories import post_repository as post_repository
 router = APIRouter(tags=["Posts"])
 
 
-@router.get("/{user_id}", response_model=PostResponseSchema)
+@router.get("/feed", response_model=list[PostResponseSchema])
+async def get_feed(user: User = Depends(auth_security.get_current_user),
+                   db: AsyncSession = Depends(get_db)) -> list[Post]:
+    """
+    Get all posts of subscribed users
+
+    :param user: Currently authenticated user.
+    :type user: User
+    :param db: Database session.
+    :type db: AsyncSession
+    """
+
+    return await post_repository.get_feed_posts(user, db)
+
+
+@router.get("/{user_id}", response_model=list[PostResponseSchema])
 async def get_posts(user_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)) -> list[Post]:
     """
     Get all posts of user
@@ -30,21 +45,6 @@ async def get_posts(user_id: int = Path(ge=1), db: AsyncSession = Depends(get_db
 
     return await post_repository.get_all_user_posts(user_id, db)
 
-
-@router.get("/{user_id}/{post_id}", response_model=PostResponseSchema)
-async def get_posts(user_id: int = Path(ge=1), post_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)) -> Post:
-    """
-    Get posts of user
-
-    :param user_id: user id
-    :type user_id: int
-    :param post_id: id of post to get
-    :type post_id: int
-    :param db: Database session.
-    :type db: AsyncSession
-    """
-
-    return await post_repository.get_user_post(post_id, user_id, db)
 
 @router.post("/create_post", response_model=PostResponseSchema,
              status_code=status.HTTP_201_CREATED,
@@ -87,11 +87,12 @@ async def create_post(description: Optional[str] = Form(default=None),
 
     return new_post
 
+
 @router.post("/create_qr", response_model=QRResponseSchema,
              status_code=status.HTTP_201_CREATED)
 async def create_qr(post_id: int, db: AsyncSession = Depends(get_db),
                     current_user: User = Depends(auth_security.get_current_user)) -> QRResponseSchema:
-    post = await post_repository.get_user_post(post_id, current_user, db)
+    post = await post_repository.get_user_post(post_id, current_user.id, db)
     if post.content.qr_code:
         return QRResponseSchema(qr_code=post.content.qr_code)
     folder = f"{current_user.email}/user_QR_codes"
@@ -148,7 +149,3 @@ async def delete_post(post_id: int = Path(ge=1), db: AsyncSession = Depends(get_
     :rtype: status.HTTP_204_NO_CONTENT | status.HTTP_404_NOT_FOUND
     """
     await post_repository.delete_post(post_id, current_user, db)
-
-
-
-

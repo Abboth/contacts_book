@@ -7,11 +7,28 @@ from src.core import message
 from src.posts.models import Post, Content, Tag
 from src.posts.shcemas import PostSchema
 from src.services.cloudinary_service import cloudinary_services
-from src.users.models import User
+from src.users.models import User, Follower
 
 
-async def get_user_post(post_id: int, user: User, db: AsyncSession) -> Post:
-    stmt = (select(Post).where(Post.id == post_id, Post.user_id == user.id)
+async def get_feed_posts(user: User, db: AsyncSession) -> list[Post]:
+    subquery = select(Follower.followed_id).where(Follower.follower_id == user.id).subquery()
+    stmt = (
+        select(Post)
+        .where(Post.user_id.in_(select(subquery.c.followed_id)))
+        .options(
+            selectinload(Post.content),
+            selectinload(Post.tags),
+        )
+        .order_by(Post.created_at.desc())
+    )
+    result = await db.execute(stmt)
+    posts = result.scalars().all()
+
+    return posts
+
+
+async def get_user_post(post_id: int, user_id: int, db: AsyncSession) -> Post:
+    stmt = (select(Post).where(Post.id == post_id, Post.user_id == user_id)
             .options(selectinload(Post.content), selectinload(Post.tags)))
     result = await db.execute(stmt)
     post = result.scalar_one_or_none()
@@ -55,7 +72,6 @@ async def tags_validation(tags_list: list[str], db: AsyncSession) -> list[Tag]:
 
 
 async def create_post(body: PostSchema, image_url: str, user: User, db: AsyncSession) -> Post:
-
     post_content = Content(description=body.description, image=image_url)
     post = Post(user_id=user.id, content=post_content, tags=body.tag)
 
@@ -66,7 +82,7 @@ async def create_post(body: PostSchema, image_url: str, user: User, db: AsyncSes
 
 
 async def edite_post(body: PostSchema, post_id: int, user: User, db: AsyncSession) -> Post:
-    post = await get_user_post(post_id, user, db)
+    post = await get_user_post(post_id, user.id, db)
     tag_list = await tags_validation(body.tag, db)
 
     post.content.description = body.description
@@ -79,7 +95,7 @@ async def edite_post(body: PostSchema, post_id: int, user: User, db: AsyncSessio
 
 
 async def delete_post(post_id: int, user: User, db: AsyncSession) -> None:
-    post = await get_user_post(post_id, user, db)
+    post = await get_user_post(post_id, user.id, db)
 
     await db.delete(post)
     await db.commit()
