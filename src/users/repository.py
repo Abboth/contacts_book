@@ -4,7 +4,7 @@ from fastapi import HTTPException, status
 from libgravatar import Gravatar
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from src.core import message
 from src.users.models import User
@@ -23,7 +23,7 @@ async def get_user_by_email_or_none(email: str, db: AsyncSession) -> User | None
     :return: finded user by email or none
     :rtype: User | None
     """
-    stmt = select(User).where(User.email == email)
+    stmt = select(User).where(User.email == email).options(selectinload(User.role))
     result = await db.execute(stmt)
     return result.scalar_one_or_none()
 

@@ -30,7 +30,7 @@ async def change_avatar(avatar_img: UploadFile = File, user: User = Depends(auth
     :return: Updated user with new avatar URL.
     :rtype: User
     """
-    folder = f"user_avatars/{user.email}"
+    folder = f"{user.email}/user_avatar"
     public_id = f"avatar_{user.email}"
     transformation = {"width": 250, "height": 250, "crop": "fill"}
     avatar_url =await cloudinary_services.upload_file(avatar_img.file, folder, public_id, transformation)

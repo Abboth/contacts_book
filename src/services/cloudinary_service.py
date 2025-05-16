@@ -1,13 +1,18 @@
+import logging
 from enum import Enum
 from io import BytesIO
+from urllib.parse import urlparse
 
 import qrcode
 
 import cloudinary
-import cloudinary.uploader
+from cloudinary import api, uploader
 from cloudinary.utils import cloudinary_url
+from fastapi import HTTPException
 
 from src.core.config import configuration
+
+logging.basicConfig(level=logging.INFO)
 
 
 class CloudinaryService:
@@ -18,6 +23,7 @@ class CloudinaryService:
             api_secret=configuration.CLOUDINARY_SECRET_KEY,
             secure=True,
         )
+
     class ImageTransformation(str, Enum):
         sepia = "sepia"
         grayscale = "grayscale"
@@ -26,7 +32,8 @@ class CloudinaryService:
         art_grayscale = "art:grayscale"
         art_sepia = "art:sepia"
 
-    async def upload_file(self, file, folder: str, public_id: str, transformation: dict = None) -> str:
+    @staticmethod
+    async def upload_file(file, folder: str, public_id: str, transformation: dict = None) -> str:
         upload_result = cloudinary.uploader.upload(
             file,
             folder=folder,
@@ -56,6 +63,28 @@ class CloudinaryService:
         qr_link = await self.upload_file(img_buffer, folder, public_id)
 
         return qr_link
+
+    @staticmethod
+    async def get_public_id_from_url(url: str) -> str:
+        path = urlparse(url).path
+        parts = path.split('/')
+        public_id_parts = parts[-3:]
+        public_id = '/'.join(public_id_parts)
+        return public_id
+
+    async def delete_file(self, public_id: str) -> None:
+        public_id = await self.get_public_id_from_url(public_id)
+        try:
+            cloudinary.uploader.destroy(public_id)
+        except HTTPException as err:
+            logging.info(err)
+
+    @staticmethod
+    async def delete_user_files(email: str) -> None:
+        try:
+            cloudinary.api.delete_folder(email)
+        except HTTPException as err:
+            logging.info(err)
 
 
 cloudinary_services = CloudinaryService()

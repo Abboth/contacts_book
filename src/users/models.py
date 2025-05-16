@@ -18,6 +18,9 @@ class Role(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     role_name: Mapped[str] = mapped_column(String(10), unique=True)
 
+    def __str__(self):
+        return self.role_name
+
 
 class User(Base):
     __tablename__ = "users"

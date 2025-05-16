@@ -1,13 +1,12 @@
 import uuid
 from pathlib import Path
-from typing import Optional, Annotated, List
+from typing import Optional, List
 
 from fastapi import APIRouter, UploadFile, Depends, File, status, Form
 from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.security import auth_security
-from src.core.config import configuration
 from src.core.connection import get_db
 from src.services.cloudinary_service import cloudinary_services
 from src.posts.shcemas import PostSchema, PostResponseSchema, QRResponseSchema
@@ -17,12 +16,7 @@ from src.posts import repository as post_repository
 
 router = APIRouter(tags=["Posts"])
 
-# cloudinary.config(
-#     cloud_name=configuration.CLOUDINARY_CLOUD,
-#     api_key=configuration.CLOUDINARY_API_KEY,
-#     api_secret=configuration.CLOUDINARY_SECRET_KEY,
-#     secure=True,
-# )
+
 @router.get("/{user_id}", response_model=PostResponseSchema)
 async def get_posts(user_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)) -> list[Post]:
     """
@@ -69,7 +63,7 @@ async def create_post(description: Optional[str] = Form(default=None),
     if image_filter:
         transformation.insert(0, {"effect": image_filter.value})
 
-    folder = f"user_shots/{current_user.email}"
+    folder = f"{current_user.email}/user_shots"
     public_id = f"{uuid.uuid4()}"
     cloud_storage_url = await cloudinary_services.upload_file(image.file, folder, public_id, transformation)
 
@@ -84,7 +78,7 @@ async def create_qr(post_id: int, db: AsyncSession = Depends(get_db),
     post = await post_repository.get_user_post(post_id, current_user, db)
     if post.content.qr_code:
         return QRResponseSchema(qr_code=post.content.qr_code)
-    folder = f"user_QR_codes/{current_user.email}"
+    folder = f"{current_user.email}/user_QR_codes"
     public_id = f"{uuid.uuid4()}"
 
     qr_code_link = await cloudinary_services.create_qr_code(post.content.image, folder, public_id)

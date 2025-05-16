@@ -212,16 +212,9 @@ class Auth:
                 raise credentials_exception
         except JWTError:
             raise credentials_exception
-        user = await redis_manager.get_obj(f"user:{email}")
 
-        if not user:
-            logging.info("im from database")
-            user = await user_repository.get_user_by_email(email, db)
-            if user is None:
-                raise credentials_exception
-            await redis_manager.set_obj(f"user:{email}", user, ex=300)
-        else:
-            logging.info("im from cache")
+        user = await user_repository.get_user_by_email(email, db)
+
         return user
 
 
@@ -258,6 +251,8 @@ class RoleVerification:
         :type current_user: User
         :raises HTTPException: If user's role is not allowed
         """
+        print("DEBUG: current_user.role =", current_user.role)
+        print("DEBUG: role_name =", getattr(current_user.role, "role_name", None))
         if current_user.role.role_name not in self.allowed_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

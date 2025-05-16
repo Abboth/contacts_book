@@ -1,18 +1,17 @@
-from urllib.parse import urlparse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import status, HTTPException
 from sqlalchemy.orm import selectinload
 
 from src.core import message
-from src.posts.models import Post, Content, Tag
+from src.posts.models import Post, Tag
 from src.posts.shcemas import PostSchema
 from src.services.cloudinary_service import cloudinary_services
 from src.users.models import User
 
 
-async def get_user_post(post_id: int, user: User, db: AsyncSession) -> Post:
-    stmt = (select(Post).where(Post.id == post_id, Post.user_id == user.id)
+async def get_post(post_id: int, db: AsyncSession) -> Post:
+    stmt = (select(Post).where(Post.id == post_id)
             .options(selectinload(Post.content), selectinload(Post.tags)))
     result = await db.execute(stmt)
     post = result.scalar_one_or_none()
@@ -22,16 +21,6 @@ async def get_user_post(post_id: int, user: User, db: AsyncSession) -> Post:
 
     return post
 
-
-async def get_all_user_posts(user_id: int, db: AsyncSession) -> list[Post] | None:
-    stmt = (select(Post).where(Post.user_id == user_id)
-            .options(selectinload(Post.content), selectinload(Post.tags)))
-    result = await db.execute(stmt)
-    posts = result.scalars().all()
-
-    return posts
-
-
 async def tags_validation(tags_list: list[str], db: AsyncSession) -> list[Tag]:
     tag_obj_list = []
     for tags in tags_list:
@@ -40,8 +29,6 @@ async def tags_validation(tags_list: list[str], db: AsyncSession) -> list[Tag]:
 
         raw_tags = [t.strip() for t in tags.split(",") if t.strip()]
         unique_tags = set(raw_tags)
-        if len(unique_tags) > 5:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You can add maximum 5 tags")
         for tag_name in unique_tags:
             stmt = select(Tag).where(Tag.name == tag_name)
             result = await db.execute(stmt)
@@ -54,20 +41,8 @@ async def tags_validation(tags_list: list[str], db: AsyncSession) -> list[Tag]:
 
     return tag_obj_list
 
-
-async def create_post(body: PostSchema, image_url: str, user: User, db: AsyncSession) -> Post:
-
-    post_content = Content(description=body.description, image=image_url)
-    post = Post(user_id=user.id, content=post_content, tags=body.tag)
-
-    db.add(post)
-    await db.commit()
-    await db.refresh(post)
-    return post
-
-
-async def edite_post(body: PostSchema, post_id: int, user: User, db: AsyncSession) -> Post:
-    post = await get_user_post(post_id, user, db)
+async def edite_post(body: PostSchema, post_id: int, db: AsyncSession) -> Post:
+    post = await get_post(post_id, db)
     tag_list = await tags_validation(body.tag, db)
 
     post.content.description = body.description
@@ -79,16 +54,24 @@ async def edite_post(body: PostSchema, post_id: int, user: User, db: AsyncSessio
     return post
 
 
-async def delete_post(post_id: int, user: User, db: AsyncSession) -> None:
-    post = await get_user_post(post_id, user, db)
+async def delete_post(post_id: int, db: AsyncSession) -> None:
+    post = await get_post(post_id, db)
 
     await db.delete(post)
     await db.commit()
+
     await cloudinary_services.delete_file(post.content.image)
     if post.content.qr_code:
         await cloudinary_services.delete_file(post.content.qr_code)
 
 
-async def update_qr_code(post: Post, qr_code: str, db: AsyncSession) -> None:
-    post.content.qr_code = qr_code
+async def delete_user(user_id: int, db: AsyncSession) -> None:
+    stmt = select(User).where(User.id == user_id)
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+
+    await db.delete(user)
     await db.commit()
+
+    await cloudinary_services.delete_user_files(user.email)
+

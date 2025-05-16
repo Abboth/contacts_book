@@ -19,6 +19,7 @@ from src.users.routes import router as user_route
 from src.contacts.routes.contacts import router as contact_route
 from src.contacts.routes.contact_emails import router as contact_email_route
 from src.contacts.routes.contact_phones import router as contact_phone_route
+from src.admin.routes import router as admin_route
 from src.posts.routes import router as post_route
 from src.services.redis_service import redis_manager
 
@@ -38,14 +39,14 @@ directory = BASE_DIR.joinpath("src").joinpath("statics")
 
 app.mount("/statics", StaticFiles(directory=directory), name="statics")
 
+app.include_router(post_route, prefix="/post", tags=["Posts"])
 app.include_router(user_route, prefix="/users", tags=["Users"])
 app.include_router(auth_route, prefix="/auth", tags=["Authorization"])
 app.include_router(contact_route, prefix="/contact", tags=["Contacts"])
+app.include_router(admin_route, prefix="/staff", tags=["Staff manage panel"])
+app.include_router(service_route, prefix="/service", tags=["Email services"])
 app.include_router(contact_phone_route, prefix="/contact/phone", tags=["Phones"])
 app.include_router(contact_email_route, prefix="/contact/email", tags=["Emails"])
-app.include_router(service_route, prefix="/service", tags=["Email_services"])
-app.include_router(post_route, prefix="/post", tags=["Posts"])
-
 
 
 @app.get("/")
