@@ -1,25 +1,25 @@
-from datetime import date, datetime
+from datetime import datetime
 
-from sqlalchemy import String, func, Integer, ForeignKey, Boolean, Table, Column, DateTime
+from sqlalchemy import String, func, Integer, ForeignKey, Boolean, DateTime
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.base import Base
 from src.core import models
 
-followers = Table(
-    "followers",
-    Base.metadata,
-    Column("follower_id", Integer, ForeignKey("users.id"), primary_key=True),
-    Column("followed_id", Integer, ForeignKey("users.id"), primary_key=True),
-)
+class Follower(Base):
+    __tablename__ = "followers"
+    follower_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    followed_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
+
+    follower = relationship("User", foreign_keys=[follower_id], back_populates="following", lazy="selectin")
+    followed = relationship("User", foreign_keys=[followed_id], back_populates="followers", lazy="selectin")
+
 
 class Role(Base):
     __tablename__ = "roles"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     role_name: Mapped[str] = mapped_column(String(10), unique=True)
 
-    def __str__(self):
-        return self.role_name
 
 
 class User(Base):
@@ -44,11 +44,9 @@ class User(Base):
     contacts = relationship("Contact", backref="user", cascade="all, delete", lazy="selectin")
     received_emails = relationship("Email", backref="user", cascade="all, delete", lazy="selectin")
     auth_session = relationship("AuthSession", backref="user", cascade="all, delete", lazy="selectin")
+    comments = relationship("Comment", backref="user", cascade="all, delete", lazy="selectin")
 
-    followed = relationship(
-        "User",
-        secondary=followers,
-        primaryjoin=id == followers.c.follower_id,
-        secondaryjoin=id == followers.c.followed_id,
-        backref="followers"
-    )
+    followers = relationship("Follower", foreign_keys="[Follower.followed_id]",
+                             back_populates="followed", lazy="selectin")
+    following = relationship("Follower", foreign_keys="[Follower.follower_id]",
+                             back_populates="follower", lazy="selectin")

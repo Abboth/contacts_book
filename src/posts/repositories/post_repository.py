@@ -1,4 +1,3 @@
-from urllib.parse import urlparse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import status, HTTPException

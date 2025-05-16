@@ -20,3 +20,9 @@ EMAIL_TAG_NOT_FOUND = "Email with given tag not found for this contact"
 PHONE_TAG_NOT_FOUND = "Phone with given tag not found for this contact"
 
 POST_NOT_FOUND = "Post not found"
+COMMENT_NOT_FOUND = "Comment not found"
+
+THIS_USER_NOT_FOLLOWED = "You don't follow this user"
+THIS_USER_NOT_FOLLOWED_YOU = "This user don't follow you"
+YOU_CANT_FOLLOW_YOURSELF = "You can't follow yourself"
+YOU_ALREADY_FOLLOW_THIS_USER = "You already follow this user"

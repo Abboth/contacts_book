@@ -1,5 +1,7 @@
+from typing import Optional
+
 from sqlalchemy import Integer, String, DateTime, ForeignKey, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, backref
 from sqlalchemy.orm import relationship
 from src.core.base import Base
 from datetime import datetime
@@ -23,7 +25,7 @@ class Post(Base):
 
     content = relationship("Content", backref="post", cascade="all, delete", lazy="selectin", uselist=False)
     comments = relationship("Comment", backref="post", cascade="all, delete", lazy="selectin")
-    tags = relationship("Tag", secondary="posts_tags", backref="post", lazy="selectin")
+    tags = relationship("Tag", secondary="posts_tags", back_populates="posts", lazy="selectin")
 
 
 
@@ -44,13 +46,23 @@ class Tag(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     name: Mapped[str] = mapped_column(String(30), nullable=False)
 
-    posts = relationship("Post", secondary="posts_tags", backref="tag", lazy="selectin")
+    posts = relationship( "Post", secondary="posts_tags", back_populates="tags", lazy="selectin")
 
 
 class Comment(Base):
     __tablename__ = "comments"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    comment: Mapped[str] = mapped_column(String(500), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True, onupdate=func.now())
     post_id: Mapped[int] = mapped_column(Integer, ForeignKey("posts.id", ondelete="CASCADE"), nullable=False)
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    reply_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("comments.id",
+                                                                        ondelete="CASCADE"), nullable=True)
+
+    replies: Mapped[list["Comment"]] = relationship(
+        backref=backref("parent", remote_side=[id]),
+        cascade="all, delete-orphan"
+    )
+

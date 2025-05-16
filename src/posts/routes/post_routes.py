@@ -12,7 +12,7 @@ from src.services.cloudinary_service import cloudinary_services
 from src.posts.shcemas import PostSchema, PostResponseSchema, QRResponseSchema
 from src.users.models import User
 from src.posts.models import Post
-from src.posts import repository as post_repository
+from src.posts.repositories import post_repository as post_repository
 
 router = APIRouter(tags=["Posts"])
 
@@ -29,6 +29,22 @@ async def get_posts(user_id: int = Path(ge=1), db: AsyncSession = Depends(get_db
     """
 
     return await post_repository.get_all_user_posts(user_id, db)
+
+
+@router.get("/{user_id}/{post_id}", response_model=PostResponseSchema)
+async def get_posts(user_id: int = Path(ge=1), post_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)) -> Post:
+    """
+    Get posts of user
+
+    :param user_id: user id
+    :type user_id: int
+    :param post_id: id of post to get
+    :type post_id: int
+    :param db: Database session.
+    :type db: AsyncSession
+    """
+
+    return await post_repository.get_user_post(post_id, user_id, db)
 
 @router.post("/create_post", response_model=PostResponseSchema,
              status_code=status.HTTP_201_CREATED,
@@ -57,7 +73,7 @@ async def create_post(description: Optional[str] = Form(default=None),
     :rtype: Post
     """
     tags = await post_repository.tags_validation(tag, db)
-    body = PostSchema(description=description or None, tag=tags or [], image_filter=image_filter)
+    body = PostSchema(description=description or None, tag=tags or [])
 
     transformation = [{"width": 500, "height": 500, "crop": "fill"}]
     if image_filter:
@@ -132,4 +148,7 @@ async def delete_post(post_id: int = Path(ge=1), db: AsyncSession = Depends(get_
     :rtype: status.HTTP_204_NO_CONTENT | status.HTTP_404_NOT_FOUND
     """
     await post_repository.delete_post(post_id, current_user, db)
+
+
+
 

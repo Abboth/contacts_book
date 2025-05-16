@@ -65,13 +65,4 @@ async def delete_post(post_id: int, db: AsyncSession) -> None:
         await cloudinary_services.delete_file(post.content.qr_code)
 
 
-async def delete_user(user_id: int, db: AsyncSession) -> None:
-    stmt = select(User).where(User.id == user_id)
-    result = await db.execute(stmt)
-    user = result.scalar_one_or_none()
-
-    await db.delete(user)
-    await db.commit()
-
-    await cloudinary_services.delete_user_files(user.email)
 

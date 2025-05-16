@@ -1,4 +1,6 @@
-from pydantic import EmailStr, Field, BaseModel, ConfigDict
+from typing import Optional
+
+from pydantic import EmailStr, Field, BaseModel, ConfigDict, field_serializer
 
 
 class UserSchema(BaseModel):
@@ -14,4 +16,5 @@ class UserResponseSchema(BaseModel):
     avatar: str
 
     model_config = ConfigDict(from_attributes=True)
+
 
