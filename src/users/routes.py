@@ -5,13 +5,47 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.auth.security import auth_security
 from src.core.config import configuration
 from src.core.connection import get_db
+from src.posts.models import Post
+from src.posts.repositories import post_repository
+from src.posts.shcemas import PostResponseSchema
 from src.services.cloudinary_service import cloudinary_services
 from src.services.redis_service import redis_manager
 from src.users.models import User
-from src.users.schemas import UserResponseSchema
+from src.users.schemas import UserResponseSchema, SubsListResponseSchema, UserProfileResponseSchema
 from src.users import repository as user_repository
 
 router = APIRouter(tags=["Users"])
+
+
+@router.get("/{username}", response_model=UserProfileResponseSchema)
+async def get_user(username: str, db: AsyncSession = Depends(get_db)):
+    """
+    Retrieve user data by username
+
+    :param username: users username
+    :type username: str
+    :param db: The database session.
+    :type db: AsyncSession
+    :return: user or raise exception
+    :rtype: User | None
+    """
+
+    return await user_repository.get_user_data(username, db)
+
+
+@router.get("/feed", response_model=list[PostResponseSchema])
+async def get_feed(user: User = Depends(auth_security.get_current_user),
+                   db: AsyncSession = Depends(get_db)) -> list[Post]:
+    """
+    Get all posts of subscribed users
+
+    :param user: Currently authenticated user.
+    :type user: User
+    :param db: Database session.
+    :type db: AsyncSession
+    """
+
+    return await post_repository.get_feed_posts(user, db)
 
 
 @router.patch("/change_avatar",
@@ -57,3 +91,15 @@ async def unsubscribe_user(email: str, user: User = Depends(auth_security.get_cu
 async def delete_subscriber(email: str, user: User = Depends(auth_security.get_current_user),
                             db: AsyncSession = Depends(get_db)) -> None:
     await user_repository.delete_subscriber(email, user, db)
+
+
+@router.get("/{user_id}/subscribers", response_model=list[SubsListResponseSchema])
+async def get_subscribers(user: User = Depends(auth_security.get_current_user),
+                          db: AsyncSession = Depends(get_db)) -> list[User]:
+    return await user_repository.get_all_subscribers(user, db)
+
+
+@router.get("/{user_id}/subscriptions", response_model=list[SubsListResponseSchema])
+async def get_subscriptions(user: User = Depends(auth_security.get_current_user),
+                            db: AsyncSession = Depends(get_db)) -> list[User]:
+    return await user_repository.get_all_subscriptions(user, db)

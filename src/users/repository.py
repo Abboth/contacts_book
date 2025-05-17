@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from src.core import message
 from src.users.models import User, Follower
-from src.users.schemas import UserSchema
+from src.users.schemas import UserSchema, UserProfileResponseSchema
 
 logging.basicConfig(level=logging.INFO)
 
@@ -65,6 +65,32 @@ def get_user_by_email_sync(email: str, db: Session) -> User | None:
                             detail=message.USER_NOT_FOUNDED_BY_EMAIL)
     return user
 
+
+async def get_user_data(username: str, db: AsyncSession) -> UserProfileResponseSchema:
+    """
+    Retrieve user data by username
+
+    :param username: users username
+    :type username: str
+    :param db: The database session.
+    :type db: AsyncSession
+    :return: user or raise exception
+    :rtype: User | None
+    """
+    stmt = select(User).where(User.username == username).options(selectinload(User.following),
+                                                                 selectinload(User.followers),
+                                                                 selectinload(User.posts))
+    result = await db.execute(stmt)
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=404, detail=message.USER_NOT_FOUNDED_BY_USERNAME)
+    return UserProfileResponseSchema(count_posts=len(user.posts),
+                                     count_followers=len(user.followers),
+                                     count_following=len(user.following),
+                                     username=user.username,
+                                     posts=user.posts,
+                                     created_at=user.created_at
+                                     )
 
 async def create_new_user(body: UserSchema, db: AsyncSession) -> User:
     """
@@ -183,7 +209,6 @@ async def subscribe_user(email: str, user: User, db: AsyncSession) -> None:
     await db.commit()
 
 
-
 async def unsubscribe_user(email: str, user: User, db: AsyncSession) -> None:
     """
     Unsubscribe user to newsletter
@@ -230,3 +255,37 @@ async def delete_subscriber(email: str, user: User, db: AsyncSession) -> None:
 
     await db.delete(follower)
     await db.commit()
+
+
+async def get_all_subscribers(user: User, db: AsyncSession) -> list[User]:
+    """
+    Get all subscribers of current user
+
+    :param user: current user
+    :type user: User
+    :param db: The database session.
+    :type db: AsyncSession
+    :return: list of subscribers
+    :rtype: list[User]
+    """
+    stmt = select(Follower).where(Follower.follower_id == user.id)
+    result = await db.execute(stmt)
+    followers = result.scalars().all()
+    return followers
+
+
+async def get_all_subscriptions(user: User, db: AsyncSession) -> list[User]:
+    """
+    Get all subscriptions of current user
+
+    :param user: current user
+    :type user: User
+    :param db: The database session.
+    :type db: AsyncSession
+    :return: list of subscriptions
+    :rtype: list[User]
+    """
+    stmt = select(Follower).where(Follower.followed_id == user.id)
+    result = await db.execute(stmt)
+    followers = result.scalars().all()
+    return followers

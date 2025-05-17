@@ -21,7 +21,7 @@ class Post(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=func.now())
     updated_at: Mapped[datetime] = mapped_column(DateTime, nullable=True, onupdate=func.now())
 
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     content = relationship("Content", backref="post", cascade="all, delete", lazy="selectin", uselist=False)
     comments = relationship("Comment", backref="post", cascade="all, delete", lazy="selectin")

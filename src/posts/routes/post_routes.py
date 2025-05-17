@@ -17,21 +17,6 @@ from src.posts.repositories import post_repository as post_repository
 router = APIRouter(tags=["Posts"])
 
 
-@router.get("/feed", response_model=list[PostResponseSchema])
-async def get_feed(user: User = Depends(auth_security.get_current_user),
-                   db: AsyncSession = Depends(get_db)) -> list[Post]:
-    """
-    Get all posts of subscribed users
-
-    :param user: Currently authenticated user.
-    :type user: User
-    :param db: Database session.
-    :type db: AsyncSession
-    """
-
-    return await post_repository.get_feed_posts(user, db)
-
-
 @router.get("/{user_id}", response_model=list[PostResponseSchema])
 async def get_posts(user_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)) -> list[Post]:
     """

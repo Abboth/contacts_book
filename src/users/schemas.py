@@ -1,6 +1,10 @@
+from datetime import datetime
 from typing import Optional
 
-from pydantic import EmailStr, Field, BaseModel, ConfigDict, field_serializer
+from pydantic import EmailStr, Field, BaseModel, ConfigDict, field_serializer, model_serializer
+
+from src.posts.models import Post
+from src.posts.shcemas import PostResponseSchema
 
 
 class UserSchema(BaseModel):
@@ -17,4 +21,18 @@ class UserResponseSchema(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
+class SubsListResponseSchema(BaseModel):
+    username: str
+    avatar: str
 
+    model_config = ConfigDict(from_attributes=True)
+
+class UserProfileResponseSchema(BaseModel):
+    count_posts: int
+    count_followers: int
+    count_following: int
+    username: str
+    posts: Optional[list[PostResponseSchema]]
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
