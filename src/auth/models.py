@@ -4,6 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from sqlalchemy import String, Integer, ForeignKey, func, DateTime
 
 from src.core.base import Base
+from src.users.models import User
 
 
 class AuthSession(Base):

@@ -2,14 +2,15 @@ import uuid
 from pathlib import Path
 from typing import Optional, List
 
-from fastapi import APIRouter, UploadFile, Depends, File, status, Form
+from fastapi import APIRouter, UploadFile, Depends, File, status, Form, Query
 from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.security import check_active_user
 from src.core.connection import get_db
+from src.posts.filter_enums import OrderByEnum
 from src.services.cloudinary_service import cloudinary_services
-from src.posts.shcemas import PostSchema, PostResponseSchema, QRResponseSchema
+from src.posts.schemas import PostSchema, PostResponseSchema, QRResponseSchema, PostFilterParamsSchema
 from src.users.models import User
 from src.posts.models import Post
 from src.posts.repositories import post_repository as post_repository
@@ -17,18 +18,13 @@ from src.posts.repositories import post_repository as post_repository
 router = APIRouter(tags=["Posts"])
 
 
-@router.get("/{user_id}", response_model=list[PostResponseSchema])
-async def get_posts(user_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)) -> list[Post]:
-    """
-    Get all posts of user
-
-    :param user_id: id of user
-    :type user_id: int
-    :param db: Database session.
-    :type db: AsyncSession
-    """
-
-    return await post_repository.get_all_user_posts(user_id, db)
+@router.get("/search", response_model=list[PostResponseSchema])
+async def search_posts(tag: str = Query(),
+                       order_by: Optional[list[OrderByEnum]] = Query(default=None),
+                       filter_values: PostFilterParamsSchema = Depends(),
+                       user: User = Depends(check_active_user),
+                       db: AsyncSession = Depends(get_db)) -> list[Post]:
+    return await post_repository.search_posts(tag, filter_values, order_by, db)
 
 
 @router.post("/create_post", response_model=PostResponseSchema,
@@ -88,6 +84,20 @@ async def create_qr(post_id: int, db: AsyncSession = Depends(get_db),
     return QRResponseSchema(qr_code=qr_code_link)
 
 
+@router.get("/{user_id}", response_model=list[PostResponseSchema])
+async def get_posts(user_id: int = Path(ge=1), db: AsyncSession = Depends(get_db)) -> list[Post]:
+    """
+    Get all posts of user
+
+    :param user_id: id of user
+    :type user_id: int
+    :param db: Database session.
+    :type db: AsyncSession
+    """
+
+    return await post_repository.get_all_user_posts(user_id, db)
+
+
 @router.patch("/edite_post/{post_id}",
               response_model=PostResponseSchema,
               dependencies=[Depends(RateLimiter(times=4, seconds=60))])
@@ -134,3 +144,4 @@ async def delete_post(post_id: int = Path(ge=1), db: AsyncSession = Depends(get_
     :rtype: status.HTTP_204_NO_CONTENT | status.HTTP_404_NOT_FOUND
     """
     await post_repository.delete_post(post_id, current_user, db)
+

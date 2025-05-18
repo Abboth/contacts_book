@@ -5,7 +5,7 @@ from sqlalchemy.orm import selectinload
 
 from src.core import message
 from src.posts.models import Comment
-from src.posts.shcemas import CommentCreateSchema
+from src.posts.schemas import CommentCreateSchema
 from src.users.models import User
 
 

@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core import message
 from src.posts.models import Comment
-from src.posts.shcemas import CommentCreateSchema
+from src.posts.schemas import CommentCreateSchema
 
 
 async def get_comment_by_id(comment_id: int, user_id: int, db: AsyncSession) -> Comment:

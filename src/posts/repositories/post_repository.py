@@ -4,8 +4,9 @@ from fastapi import status, HTTPException
 from sqlalchemy.orm import selectinload
 
 from src.core import message
+from src.posts.filter_enums import OrderByEnum, filter_funcs
 from src.posts.models import Post, Content, Tag
-from src.posts.shcemas import PostSchema
+from src.posts.schemas import PostSchema
 from src.services.cloudinary_service import cloudinary_services
 from src.users.models import User, Follower
 
@@ -27,6 +28,18 @@ async def get_feed_posts(user: User, db: AsyncSession) -> list[Post]:
     return posts
 
 
+async def get_post_by_id(post_id: int, db: AsyncSession) -> Post:
+    stmt = (select(Post).where(Post.id == post_id)
+            .options(selectinload(Post.content), selectinload(Post.tags)))
+    result = await db.execute(stmt)
+    post = result.scalar_one_or_none()
+
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=message.POST_NOT_FOUND)
+
+    return post
+
+
 async def get_user_post(post_id: int, user_id: int, db: AsyncSession) -> Post:
     stmt = (select(Post).where(Post.id == post_id, Post.user_id == user_id)
             .options(selectinload(Post.content), selectinload(Post.tags)))
@@ -42,6 +55,23 @@ async def get_user_post(post_id: int, user_id: int, db: AsyncSession) -> Post:
 async def get_all_user_posts(user_id: int, db: AsyncSession) -> list[Post] | None:
     stmt = (select(Post).where(Post.user_id == user_id)
             .options(selectinload(Post.content), selectinload(Post.tags)))
+    result = await db.execute(stmt)
+    posts = result.scalars().all()
+
+    return posts
+
+
+async def search_posts(tag: str, filter_values, order_by: list[OrderByEnum],
+                       db: AsyncSession) -> list[Post]:
+    stmt = select(Post).where(Post.tags.any(Tag.name == tag))
+    if filter_values:
+        for value in filter_values:
+            func = filter_funcs.get(value)
+            stmt = func(stmt, filter_values)
+    if order_by:
+        for order in order_by:
+            stmt = stmt.order_by(getattr(Post, order.value).desc())
+
     result = await db.execute(stmt)
     posts = result.scalars().all()
 

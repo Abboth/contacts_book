@@ -23,6 +23,7 @@ from src.admin.posts.routes import router as admin_post_route
 from src.admin.comments.routes import router as admin_comment_route
 from src.admin.users.routes import router as admin_user_route
 from src.posts.routes.post_routes import router as post_route
+from src.posts.routes.post_rating_routes import router as post_rating_route
 from src.posts.routes.comments_routes import router as comments_route
 from src.services.redis_service import redis_manager
 
@@ -43,6 +44,7 @@ directory = BASE_DIR.joinpath("src").joinpath("statics")
 app.mount("/statics", StaticFiles(directory=directory), name="statics")
 
 app.include_router(post_route, prefix="/post", tags=["Posts"])
+app.include_router(post_rating_route, prefix="/post", tags=["Ratings"])
 app.include_router(user_route, prefix="/users", tags=["Users"])
 app.include_router(auth_route, prefix="/auth", tags=["Authorization"])
 app.include_router(contact_route, prefix="/contact", tags=["Contacts"])

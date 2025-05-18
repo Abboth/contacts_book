@@ -3,7 +3,7 @@ from typing import Optional, Annotated
 
 from pydantic import EmailStr, Field, BaseModel, ConfigDict
 
-from src.posts.shcemas import PostResponseSchema
+from src.posts.schemas import PostResponseSchema
 
 
 class UserSchema(BaseModel):

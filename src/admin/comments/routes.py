@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth.security import access, AccessLevel
 from src.core.connection import get_db
-from src.posts.shcemas import CommentResponseSchema, CommentCreateSchema
+from src.posts.schemas import CommentResponseSchema, CommentCreateSchema
 from src.posts.models import Comment
 from src.admin.comments import repository as admin_comment_repository
 

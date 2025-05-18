@@ -7,7 +7,7 @@ from src.core.config import configuration
 from src.core.connection import get_db
 from src.posts.models import Post
 from src.posts.repositories import post_repository
-from src.posts.shcemas import PostResponseSchema
+from src.posts.schemas import PostResponseSchema
 from src.services.cloudinary_service import cloudinary_services
 from src.services.redis_service import redis_manager
 from src.users.models import User

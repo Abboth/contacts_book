@@ -47,6 +47,7 @@ class User(Base):
     received_emails = relationship("Email", backref="user", cascade="all, delete", lazy="selectin")
     auth_session = relationship("AuthSession", backref="user", cascade="all, delete", lazy="selectin")
     posts = relationship("Post", backref="user", cascade="all, delete", lazy="selectin")
+    ratings = relationship("PostRating", back_populates="user", cascade="all, delete", lazy="selectin")
     comments = relationship("Comment", backref="user", cascade="all, delete", lazy="selectin")
 
     followers = relationship("Follower", foreign_keys="[Follower.followed_id]",

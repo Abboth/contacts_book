@@ -332,8 +332,8 @@ async def get_all_subscriptions(profile_slug: str, db: AsyncSession) -> list[Use
     """
     Get all subscriptions of current user
 
-    :param user: current user
-    :type user: User
+    :param profile_slug: profile_slug of user
+    :type profile_slug: str
     :param db: The database session.
     :type db: AsyncSession
     :return: list of subscriptions
