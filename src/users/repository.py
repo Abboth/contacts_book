@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from src.core import message
 from src.users.models import User, Follower
-from src.users.schemas import UserSchema, UserProfileResponseSchema
+from src.users.schemas import UserSchema, UserProfileResponseSchema, EditeUserSchema
 
 logging.basicConfig(level=logging.INFO)
 
@@ -66,31 +66,50 @@ def get_user_by_email_sync(email: str, db: Session) -> User | None:
     return user
 
 
-async def get_user_data(username: str, db: AsyncSession) -> UserProfileResponseSchema:
+async def get_user_by_profile_slug(profile_slug: str, db: AsyncSession) -> User:
     """
-    Retrieve user data by username
+    Retrieve user by username
 
-    :param username: users username
-    :type username: str
+    :param profile_slug: users profile_slug
+    :type profile_slug: str
     :param db: The database session.
     :type db: AsyncSession
     :return: user or raise exception
     :rtype: User | None
     """
-    stmt = select(User).where(User.username == username).options(selectinload(User.following),
+    stmt = select(User).where(User.profile_slug == profile_slug).options(selectinload(User.following),
                                                                  selectinload(User.followers),
                                                                  selectinload(User.posts))
     result = await db.execute(stmt)
     user = result.scalar_one_or_none()
     if not user:
         raise HTTPException(status_code=404, detail=message.USER_NOT_FOUNDED_BY_USERNAME)
+
+    return user
+
+
+async def get_user_data(profile_slug: str, db: AsyncSession) -> UserProfileResponseSchema:
+    """
+    Retrieve user data by username
+
+    :param profile_slug: users profile_slug
+    :type profile_slug: str
+    :param db: The database session.
+    :type db: AsyncSession
+    :return: user or raise exception
+    :rtype: User | None
+    """
+
+    user = await get_user_by_profile_slug(profile_slug, db)
+
     return UserProfileResponseSchema(count_posts=len(user.posts),
                                      count_followers=len(user.followers),
                                      count_following=len(user.following),
-                                     username=user.username,
+                                     display_name=user.display_name,
                                      posts=user.posts,
                                      created_at=user.created_at
                                      )
+
 
 async def create_new_user(body: UserSchema, db: AsyncSession) -> User:
     """
@@ -110,7 +129,8 @@ async def create_new_user(body: UserSchema, db: AsyncSession) -> User:
     except Exception as err:
         logging.info(err)
 
-    new_user = User(username=body.username,
+    new_user = User(profile_slug=body.profile_slug,
+                    display_name=body.display_name,
                     email=body.email,
                     hashed_pwd=body.password,
                     avatar=avatar)
@@ -178,18 +198,51 @@ async def update_avatar(email: str, avatar_url: str | None, db: AsyncSession) ->
     return user
 
 
-async def subscribe_user(email: str, user: User, db: AsyncSession) -> None:
+async def edite_user(body: EditeUserSchema, user: User, db: AsyncSession, password=None) -> User:
+    """
+    update existing user data
+
+    :param body: data to edite
+    :type body: UserSchema
+    :param user: user to edite
+    :type user: User
+    :param db: The database session.
+    :type db: AsyncSession
+    :param password: optional parameter to change new password
+    :type password: str
+    :return: updated user data
+    :rtype: User
+    """
+    if body.birthday and user.birthday:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=message.YOU_ALREADY_HAVE_BIRTHDAY)
+
+    if body.birthday:
+        user.birthday = body.birthday
+
+    if body.profile_slug:
+        user.display_name = body.display_name
+
+    if password:
+        user.hashed_pwd = password
+
+    await db.commit()
+    await db.refresh(user)
+
+    return user
+
+
+async def subscribe_user(profile_slug: str, user: User, db: AsyncSession) -> None:
     """
     Subscribe user to newsletter
 
     :param user: current user
     :type user: User
-    :param email: users email
-    :type email: str
+    :param profile_slug: users profile_slug
+    :type profile_slug: str
     :param db: The database session.
     :type db: AsyncSession
     """
-    user_to_follow = await get_user_by_email(email, db)
+    user_to_follow = await get_user_by_profile_slug(profile_slug, db)
     if user.id == user_to_follow.id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail=message.YOU_CANT_FOLLOW_YOURSELF)
@@ -209,18 +262,18 @@ async def subscribe_user(email: str, user: User, db: AsyncSession) -> None:
     await db.commit()
 
 
-async def unsubscribe_user(email: str, user: User, db: AsyncSession) -> None:
+async def unsubscribe_user(profile_slug: str, user: User, db: AsyncSession) -> None:
     """
     Unsubscribe user to newsletter
 
     :param user: current user
     :type user: User
-    :param email: users email to unfollow
-    :type email: str
+    :param profile_slug: users profile_slug to unfollow
+    :type profile_slug: str
     :param db: The database session.
     :type db: AsyncSession
     """
-    user_to_unfollow = await get_user_by_email(email, db)
+    user_to_unfollow = await get_user_by_profile_slug(profile_slug, db)
     stmt = select(Follower).where(Follower.follower_id == user.id,
                                   Follower.followed_id == user_to_unfollow.id)
     result = await db.execute(stmt)
@@ -233,18 +286,18 @@ async def unsubscribe_user(email: str, user: User, db: AsyncSession) -> None:
     await db.commit()
 
 
-async def delete_subscriber(email: str, user: User, db: AsyncSession) -> None:
+async def delete_subscriber(profile_slug: str, user: User, db: AsyncSession) -> None:
     """
     Delete user subscription
 
     :param user: current user
     :type user: User
-    :param email: users email to delete from subscribers
-    :type email: str
+    :param profile_slug: users email to delete from subscribers
+    :type profile_slug: str
     :param db: The database session.
     :type db: AsyncSession
     """
-    subscriber = await get_user_by_email(email, db)
+    subscriber = await get_user_by_profile_slug(profile_slug, db)
     stmt = select(Follower).where(Follower.follower_id == subscriber.id,
                                   Follower.followed_id == user.id)
     result = await db.execute(stmt)
@@ -257,24 +310,25 @@ async def delete_subscriber(email: str, user: User, db: AsyncSession) -> None:
     await db.commit()
 
 
-async def get_all_subscribers(user: User, db: AsyncSession) -> list[User]:
+async def get_all_subscribers(profile_slug: str, db: AsyncSession) -> list[User]:
     """
     Get all subscribers of current user
 
-    :param user: current user
-    :type user: User
+    :param profile_slug: users profile_slug
+    :type profile_slug: str
     :param db: The database session.
     :type db: AsyncSession
     :return: list of subscribers
     :rtype: list[User]
     """
+    user = await get_user_by_profile_slug(profile_slug, db)
     stmt = select(Follower).where(Follower.follower_id == user.id)
     result = await db.execute(stmt)
     followers = result.scalars().all()
     return followers
 
 
-async def get_all_subscriptions(user: User, db: AsyncSession) -> list[User]:
+async def get_all_subscriptions(profile_slug: str, db: AsyncSession) -> list[User]:
     """
     Get all subscriptions of current user
 
@@ -285,6 +339,7 @@ async def get_all_subscriptions(user: User, db: AsyncSession) -> list[User]:
     :return: list of subscriptions
     :rtype: list[User]
     """
+    user = await get_user_by_profile_slug(profile_slug, db)
     stmt = select(Follower).where(Follower.followed_id == user.id)
     result = await db.execute(stmt)
     followers = result.scalars().all()

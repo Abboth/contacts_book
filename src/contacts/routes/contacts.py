@@ -8,7 +8,7 @@ from src.core.connection import get_db
 from src.contacts import repository as repositories
 from src.contacts.schemas.request_schema import AddContactSchema, ContactUpdateSchema
 from src.contacts.schemas.response_schema import ContactResponseSchema
-from src.auth.security import auth_security, access, AccessLevel
+from src.auth.security import check_active_user, access, AccessLevel
 from src.users.models import User
 
 router = APIRouter(tags=["Contacts"])
@@ -18,7 +18,7 @@ router = APIRouter(tags=["Contacts"])
              dependencies=[Depends(access[AccessLevel.public])])
 async def show_all_persons(limit: int = Query(10, ge=10, le=50),
                            db: AsyncSession = Depends(get_db),
-                           current_user: User = Depends(auth_security.get_current_user)) -> List[Contact]:
+                           current_user: User = Depends(check_active_user)) -> List[Contact]:
     """
     Retrieve all contacts belonging to the current user (limited).
 
@@ -40,7 +40,7 @@ async def show_all_persons(limit: int = Query(10, ge=10, le=50),
              status_code=status.HTTP_201_CREATED,
              dependencies=[Depends(access[AccessLevel.public])])
 async def add_person(body: AddContactSchema, db: AsyncSession = Depends(get_db),
-                           current_user: User = Depends(auth_security.get_current_user)) -> Contact:
+                           current_user: User = Depends(check_active_user)) -> Contact:
     """
     Add a new contact for the current user.
 
@@ -61,7 +61,7 @@ async def add_person(body: AddContactSchema, db: AsyncSession = Depends(get_db),
 @router.get("/birthdays", response_model=list[ContactResponseSchema],
              dependencies=[Depends(access[AccessLevel.public])])
 async def get_contacts_upcoming_birthday(db: AsyncSession = Depends(get_db),
-                           current_user: User = Depends(auth_security.get_current_user)) -> List[Contact]:
+                           current_user: User = Depends(check_active_user)) -> List[Contact]:
     """
     Get contacts with upcoming birthdays for the current user.
 
@@ -80,7 +80,7 @@ async def get_contacts_upcoming_birthday(db: AsyncSession = Depends(get_db),
 @router.put("/{contact_id}", response_model=ContactResponseSchema,
              dependencies=[Depends(access[AccessLevel.public])])
 async def update_person(body: ContactUpdateSchema, contact_id: int = Path(ge=1), db: AsyncSession = Depends(get_db),
-                           current_user: User = Depends(auth_security.get_current_user)) -> Contact:
+                           current_user: User = Depends(check_active_user)) -> Contact:
     """
     Update an existing contact by ID.
 
@@ -103,7 +103,7 @@ async def update_person(body: ContactUpdateSchema, contact_id: int = Path(ge=1),
 @router.get("/{contact_id}", response_model=ContactResponseSchema,
              dependencies=[Depends(access[AccessLevel.public])])
 async def get_person(contact_id: int = Path(ge=1), db: AsyncSession = Depends(get_db),
-                           current_user: User = Depends(auth_security.get_current_user)) -> Contact:
+                           current_user: User = Depends(check_active_user)) -> Contact:
     """
     Retrieve a specific contact by ID.
 
@@ -124,7 +124,7 @@ async def get_person(contact_id: int = Path(ge=1), db: AsyncSession = Depends(ge
 @router.delete("/{contact_id}", status_code=status.HTTP_204_NO_CONTENT,
                dependencies=[Depends(access[AccessLevel.public])])
 async def delete_person(contact_id: int = Path(ge=1), db: AsyncSession = Depends(get_db),
-                        current_user: User = Depends(auth_security.get_current_user)) -> None:
+                        current_user: User = Depends(check_active_user)) -> None:
     """
     Delete a specific contact by ID.
 
@@ -144,7 +144,7 @@ async def delete_person(contact_id: int = Path(ge=1), db: AsyncSession = Depends
 @router.get("/name/{name}", response_model=list[ContactResponseSchema],
             dependencies=[Depends(access[AccessLevel.public])])
 async def get_persons_by_name(name: str = Path(min_length=2), db: AsyncSession = Depends(get_db),
-                              current_user: User = Depends(auth_security.get_current_user)) -> List[Contact]:
+                              current_user: User = Depends(check_active_user)) -> List[Contact]:
     """
     Retrieve contacts by name (case-insensitive match).
 

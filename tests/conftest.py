@@ -22,7 +22,7 @@ engine = create_async_engine(
 )
 TestingSessionLocal = async_sessionmaker(autocommit=False, autoflush=False, expire_on_commit=False, bind=engine)
 
-test_user = {"username": "deadpool", "email": "deadpool@example.com", "hashed_pwd": "123456789", "role_id": 1}
+test_user = {"profile_slug": "deadpool132", "display_name": "deadpool", "email": "deadpool@example.com", "hashed_pwd": "123456789", "role_id": 1}
 
 import pytest_asyncio
 
@@ -36,7 +36,8 @@ async def init_models_wrap():
         hashed_pwd = auth_security.get_password_hash(test_user["hashed_pwd"])
         role = Role(id=1, role_name="admin")
         user = User(
-            username=test_user["username"],
+            profile_slug=test_user["profile_slug"],
+            display_name=test_user["display_name"],
             email=test_user["email"],
             hashed_pwd=hashed_pwd,
             role_id=test_user["role_id"]

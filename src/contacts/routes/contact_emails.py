@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.security import auth_security, AccessLevel, access
+from src.auth.security import check_active_user, AccessLevel, access
 from src.contacts.models import ContactsEmail
 from src.core.connection import get_db
 from src.contacts import repository as repositories
@@ -17,7 +17,7 @@ router = APIRouter(tags=["Emails"])
              dependencies=[Depends(access[AccessLevel.public])])
 async def add_email(body: AddEmailSchema, contact_id: int = Path(ge=1),
                     db: AsyncSession = Depends(get_db),
-                    current_user: User = Depends(auth_security.get_current_user)) -> ContactsEmail:
+                    current_user: User = Depends(check_active_user)) -> ContactsEmail:
     """
     Add a new email address to the specified contact.
 
@@ -41,7 +41,7 @@ async def add_email(body: AddEmailSchema, contact_id: int = Path(ge=1),
 async def update_email(body: EmailUpdateSchema, contact_id: int = Path(ge=1),
                        tag: str = Path(min_length=4),
                        db: AsyncSession = Depends(get_db),
-                       current_user: User = Depends(auth_security.get_current_user)):
+                       current_user: User = Depends(check_active_user)):
     """
     Update an existing email address by contact ID and tag.
 

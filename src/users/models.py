@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, date
 
-from sqlalchemy import String, func, Integer, ForeignKey, Boolean, DateTime
+from sqlalchemy import String, func, Integer, ForeignKey, Boolean, DateTime, Date
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.base import Base
@@ -27,12 +27,14 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    username: Mapped[str] = mapped_column(String(40))
+    profile_slug: Mapped[str] = mapped_column(String(40), nullable=False, unique=True, index=True)
     email: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    display_name: Mapped[str] = mapped_column(String(50), nullable=False)
     hashed_pwd: Mapped[str] = mapped_column(String(255), nullable=False)
     avatar: Mapped[str] = mapped_column(String(255), nullable=True)
+    birthday: Mapped[date] = mapped_column(Date, nullable=True)
     last_activity: Mapped[datetime] = mapped_column(DateTime, nullable=True)
-    is_active: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     is_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     role_id: Mapped[int] = mapped_column(ForeignKey("roles.id"), default=3)
 

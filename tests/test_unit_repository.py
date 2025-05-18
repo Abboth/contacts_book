@@ -73,7 +73,7 @@ from src.contacts import repository as contact_repository
 
 class TestAsyncContactsRepository(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        self.user = User(id=1, username="test_user", email="test_email")
+        self.user = User(id=1, profile_slug="test_profile", display_name="test_user", email="test_email")
         self.contact = Contact(id=1, first_name="contact_first_name", last_name="contact_last_name",
                                birthday=date(2000, 1, 1), description="contact_description", user_id=1)
         self.contacts_list = [Contact(id=1, first_name="contact_first_name", last_name="contact_last_name",
@@ -425,7 +425,7 @@ from src.mail_services import repository as mail_repository
 class TestAsyncMailRepository(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
         self.db_session = AsyncMock(spec=AsyncSession)
-        self.user = User(id=1, username="test_user", email="test_email")
+        self.user = User(id=1, profile_slug="test_profile", display_name="test_user", email="test_email")
 
         self.letter = Email(id=1, status="pending", template_id=1, user_id=1, opened=False)
         self.letter_list = [Email(id=1, status="pending", template_id=1, user_id=1, opened=False),
@@ -567,10 +567,14 @@ from src.users import repository as users_repository
 
 class TestAsyncUsersRepository(unittest.IsolatedAsyncioTestCase):
     def setUp(self):
-        self.user = User(id=1, username="test_user", email="test_email@mail.com", hashed_pwd="password", is_verified=False)
-        self.user_list = [User(id=1, username="test_user", email="test_email@mail.com", hashed_pwd="password", is_verified=False),
-                          User(id=2, username="test_user2", email="test_email2@mail.com", hashed_pwd="password", is_verified=False),
-                          User(id=3, username="test_user3", email="test_email3@mail.com", hashed_pwd="password", is_verified=False)]
+        self.user = User(id=1, profile_slug="test_profile", display_name="test_user",
+                         email="test_email@mail.com", hashed_pwd="password", is_verified=False)
+        self.user_list = [User(id=1, profile_slug="test_profile1", display_name="test_user1",
+                               email="test_email@mail.com", hashed_pwd="password", is_verified=False),
+                          User(id=2, profile_slug="test_profile2", display_name="test_user2",
+                               email="test_email2@mail.com", hashed_pwd="password", is_verified=False),
+                          User(id=3, profile_slug="test_profile3", display_name="test_user3",
+                               email="test_email3@mail.com", hashed_pwd="password", is_verified=False)]
         self.db_session = AsyncMock(spec=AsyncSession)
 
     async def test_get_user_by_email_or_none(self):
@@ -615,7 +619,8 @@ class TestAsyncUsersRepository(unittest.IsolatedAsyncioTestCase):
 
     @patch("src.users.repository.Gravatar")
     async def test_create_new_user_gravatar_success(self, mock_gravatar):
-        body = UserSchema(username="test_user",
+        body = UserSchema(profile_slug="test_profile",
+                          display_name="test_user",
                           email="test_email@mail.com",
                           password="password")
 
@@ -626,7 +631,8 @@ class TestAsyncUsersRepository(unittest.IsolatedAsyncioTestCase):
         result = await users_repository.create_new_user(body, self.db_session)
 
         self.assertEqual(body.email, result.email, msg="Email should be match")
-        self.assertEqual(body.username, result.username, msg="Username should be match")
+        self.assertEqual(body.profile_slug, result.profile_slug, msg="Profile slug should be match")
+        self.assertEqual(body.display_name, result.display_name, msg="display_name should be match")
         self.assertEqual(body.password, result.hashed_pwd, msg="Hashed password should be match")
         self.assertEqual(result.avatar, "https://gravatar.com/avatar/link", msg="avatar be returned")
 
@@ -635,7 +641,8 @@ class TestAsyncUsersRepository(unittest.IsolatedAsyncioTestCase):
 
     @patch("src.users.repository.Gravatar")
     async def test_create_new_user_gravatar_false(self, mock_gravatar):
-        body = UserSchema(username="test_user",
+        body = UserSchema(profile_slug="test_profile",
+                          display_name="test_user",
                           email="test_email@mail.com",
                           password="password")
 
@@ -646,7 +653,8 @@ class TestAsyncUsersRepository(unittest.IsolatedAsyncioTestCase):
         result = await users_repository.create_new_user(body, self.db_session)
 
         self.assertEqual(body.email, result.email, msg="Email should be match")
-        self.assertEqual(body.username, result.username, msg="Username should be match")
+        self.assertEqual(body.profile_slug, result.profile_slug, msg="Profile slug should be match")
+        self.assertEqual(body.display_name, result.display_name, msg="Display name should be match")
         self.assertEqual(body.password, result.hashed_pwd, msg="Hashed password should be match")
         self.assertIsNone(result.avatar)
 

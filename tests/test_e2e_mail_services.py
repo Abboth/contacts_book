@@ -11,7 +11,7 @@ from src.mail_services.models import Email, EmailTemplates
 from src.users.repository import get_user_by_email
 from tests.conftest import TestingSessionLocal, client
 
-test_user = {"username": "deadpool", "email": "deadpool@example.com", "hashed_pwd": "123456789", "role_id": 1}
+test_user = {"profile_slug": "deadpool123", "display_name": "deadpool", "email": "deadpool@example.com", "hashed_pwd": "123456789", "role_id": 1}
 
 
 @pytest.mark.asyncio

@@ -9,7 +9,7 @@ from src.users.models import User
 from tests.conftest import TestingSessionLocal, client
 from src.core import message
 
-user_data = {"username": "Abboth", "email": "Abboth@gmail.com", "password": "123456789", "role_id": 1}
+user_data = {"profile_slug": "abboth123", "display_name": "Abboth", "email": "Abboth@gmail.com", "password": "123456789", "role_id": 1}
 
 
 def test_signup(client, monkeypatch):
@@ -23,7 +23,8 @@ def test_signup(client, monkeypatch):
     assert response.status_code == 201, response.text
     data = response.json()
     assert data["email"] == user_data["email"]
-    assert data["username"] == user_data["username"]
+    assert data["profile_slug"] == user_data["profile_slug"]
+    assert data["display_name"] == user_data["display_name"]
     assert "avatar" in data
     assert "password" not in data
     assert mock_send_email.call_count == 1

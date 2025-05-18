@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Path, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.security import auth_security, AccessLevel, access
+from src.auth.security import check_active_user, AccessLevel, access
 from src.contacts.models import ContactsPhone
 from src.core.connection import get_db
 from src.contacts import repository as repositories
@@ -16,7 +16,7 @@ router = APIRouter(tags=["Phones"])
              dependencies=[Depends(access[AccessLevel.public])])
 async def add_phone(body: AddPhoneSchema, contact_id: int = Path(ge=1),
                     db: AsyncSession = Depends(get_db),
-                    current_user: User = Depends(auth_security.get_current_user)) -> ContactsPhone:
+                    current_user: User = Depends(check_active_user)) -> ContactsPhone:
     """
     Add a new phone number to the specified contact.
 
@@ -40,7 +40,7 @@ async def add_phone(body: AddPhoneSchema, contact_id: int = Path(ge=1),
 async def update_phone(body: PhoneUpdateSchema, contact_id: int = Path(ge=1),
                        tag: str = Path(min_length=4),
                        db: AsyncSession = Depends(get_db),
-                       current_user: User = Depends(auth_security.get_current_user)) -> ContactsPhone:
+                       current_user: User = Depends(check_active_user)) -> ContactsPhone:
     """
     Update an existing phone number by contact ID and tag.
 

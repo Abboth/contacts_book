@@ -222,6 +222,20 @@ auth_security = Auth()
 get_refresh_token = HTTPBearer()
 
 
+async def check_active_user(current_user: User = Depends(auth_security.get_current_user)):
+    """
+    Check the current user for banned status.
+
+    :param current_user: current user
+    :type current_user: User
+    :raises HTTPException: If user is not active
+    """
+    if not current_user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=message.BANNED_USER)
+
+    return current_user
+
+
 class AccessLevel(str, Enum):
     """
     Enum representing user access levels.
@@ -238,6 +252,7 @@ class RoleVerification:
     :param allowed_roles: List of role names allowed to access the route
     :type allowed_roles: list[str]
     """
+
     def __init__(self, allowed_roles: list[str]):
         self.allowed_roles = allowed_roles
 

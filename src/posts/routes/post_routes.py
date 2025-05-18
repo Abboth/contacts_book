@@ -6,7 +6,7 @@ from fastapi import APIRouter, UploadFile, Depends, File, status, Form
 from fastapi_limiter.depends import RateLimiter
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.auth.security import auth_security
+from src.auth.security import check_active_user
 from src.core.connection import get_db
 from src.services.cloudinary_service import cloudinary_services
 from src.posts.shcemas import PostSchema, PostResponseSchema, QRResponseSchema
@@ -38,7 +38,7 @@ async def create_post(description: Optional[str] = Form(default=None),
                       tag: Optional[List[str]] = Form(default=None),
                       image: UploadFile = File, db: AsyncSession = Depends(get_db),
                       image_filter: Optional[cloudinary_services.ImageTransformation] = Form(default=None),
-                      current_user: User = Depends(auth_security.get_current_user)) -> Post:
+                      current_user: User = Depends(check_active_user)) -> Post:
     """
     Add a new post for the current user.
 
@@ -76,7 +76,7 @@ async def create_post(description: Optional[str] = Form(default=None),
 @router.post("/create_qr", response_model=QRResponseSchema,
              status_code=status.HTTP_201_CREATED)
 async def create_qr(post_id: int, db: AsyncSession = Depends(get_db),
-                    current_user: User = Depends(auth_security.get_current_user)) -> QRResponseSchema:
+                    current_user: User = Depends(check_active_user)) -> QRResponseSchema:
     post = await post_repository.get_user_post(post_id, current_user.id, db)
     if post.content.qr_code:
         return QRResponseSchema(qr_code=post.content.qr_code)
@@ -95,7 +95,7 @@ async def edite_post(description: Optional[str] = Form(default=None),
                      tag: Optional[List[str]] = Form(default=None),
                      post_id: int = Path(ge=1),
                      db: AsyncSession = Depends(get_db),
-                     current_user: User = Depends(auth_security.get_current_user)) -> Post:
+                     current_user: User = Depends(check_active_user)) -> Post:
     """
 
     :param description: new description for post
@@ -121,7 +121,7 @@ async def edite_post(description: Optional[str] = Form(default=None),
 @router.delete("/delete_post/{post_id}",
                status_code=status.HTTP_204_NO_CONTENT)
 async def delete_post(post_id: int = Path(ge=1), db: AsyncSession = Depends(get_db),
-                      current_user: User = Depends(auth_security.get_current_user)) -> None:
+                      current_user: User = Depends(check_active_user)) -> None:
     """
 
     :param post_id: post id to delete

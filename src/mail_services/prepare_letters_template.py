@@ -26,7 +26,7 @@ async def prepare_email_verification(user: User, host: str, db: AsyncSession):
     template_data = {
         "subject": "Confirm your email",
         "template_name": "email_verification.html",
-        "params": {"host": host, "username": user.username, "token": token, "tracking_token": tracking_token}}
+        "params": {"host": host, "profile_slug": user.profile_slug, "token": token, "tracking_token": tracking_token}}
 
     celery_task_email.delay(user.email, letter_id, template_data)
 
@@ -51,6 +51,6 @@ async def prepare_password_reset(user: User, host: str, db: AsyncSession):
     template_data = {
         "subject": "Reset your password",
         "template_name": "reset_password_request.html",
-        "params": {"host": host, "username": user.username, "token": token, "tracking_token": tracking_token}}
+        "params": {"host": host, "profile_slug": user.profile_slug, "token": token, "tracking_token": tracking_token}}
 
     celery_task_email.delay(user.email, letter_id, template_data)
